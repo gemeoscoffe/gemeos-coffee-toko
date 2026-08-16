@@ -38,6 +38,11 @@ const BASIS = SITE_URL || (process.env.CF_PAGES_URL || 'https://gemeos-coffee-to
 
 const NAMA_TOKO = 'Gemeos Coffee';
 
+// Alamat yang dilihat pembeli. Sengaja berbeda dari email yang dipakai masuk ke
+// /admin -- yang itu ada di tabel app_users dan tidak boleh ikut berubah kalau
+// alamat layanan pelanggan diganti.
+const EMAIL_TOKO = 'csdarupa@gmail.com';
+
 // Token Cloudflare Web Analytics. Memang ikut terkirim di HTML tiap halaman --
 // itu cara kerjanya, dan tidak membuka apa pun kalau dipakai orang lain.
 //
@@ -111,7 +116,7 @@ function kaki() {
           '</section>' +
           '<section>' +
             '<span class="plat">Hubungi</span>' +
-            '<a href="mailto:gemeoscoffe@gmail.com">gemeoscoffe@gmail.com</a>' +
+            '<a href="mailto:' + EMAIL_TOKO + '">' + EMAIL_TOKO + '</a>' +
           '</section>' +
         '</div>' +
         '<div class="kaki-bawah">' +
@@ -212,7 +217,7 @@ function jsonldToko(data) {
     name: NAMA_TOKO,
     description: 'Roastery kopi Arabika dan Robusta dari Gunung Puntang, Jawa Barat.',
     url: BASIS + '/',
-    email: 'gemeoscoffe@gmail.com',
+    email: EMAIL_TOKO,
     currenciesAccepted: 'IDR',
     areaServed: { '@type': 'Country', name: 'Indonesia' },
     makesOffer: data.produk.slice(0, 12).map(function (p) {
