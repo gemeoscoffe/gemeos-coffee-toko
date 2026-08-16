@@ -22,10 +22,20 @@
       <button class="btn-primary" id="login-send-btn">Kirim Kode</button>
     </div>
 
+    <!-- Templat email bawaan Supabase hanya memuat tautan, bukan kode, dan
+         templatnya baru bisa diubah setelah custom SMTP dipasang. Jadi tautan
+         itulah jalan masuknya, dan halaman ini harus mengatakannya -- kotak kode
+         yang berdiri paling depan membuat orang menunggu kode yang tidak pernah
+         datang. Kotaknya tetap ada untuk saat templat sudah memuat kode. -->
     <div id="login-step-code" class="hidden">
-      <label for="login-code">Kode dari email <span id="login-code-for" class="muted"></span></label>
-      <input id="login-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
-      <button class="btn-primary" id="login-verify-btn">Masuk</button>
+      <p>Email dikirim ke <b id="login-code-for"></b>. Buka emailnya, lalu klik
+        <b>Sign in</b> di dalamnya &mdash; kamu akan kembali ke halaman ini dalam keadaan sudah masuk.</p>
+      <details>
+        <summary class="muted" style="cursor:pointer;font-size:13px;margin-bottom:10px">Emailnya memuat kode angka?</summary>
+        <label for="login-code">Kode dari email</label>
+        <input id="login-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+        <button class="btn-primary" id="login-verify-btn">Masuk dengan Kode</button>
+      </details>
       <button class="btn-secondary" id="login-back-btn">Ganti Email</button>
     </div>
 

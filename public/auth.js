@@ -58,8 +58,7 @@ async function authSendCode() {
     if (error) throw error;
     document.getElementById('login-code-for').textContent = email;
     authStep('code');
-    authSetStatus('Kode 6 angka dikirim ke ' + email + '. Cek juga folder spam.', 'var(--green)');
-    document.getElementById('login-code').focus();
+    authSetStatus('Email dikirim ke ' + email + '. Buka emailnya, klik "Sign in". Cek juga folder spam.', 'var(--green)');
   } catch (err) {
     authSetStatus('Gagal mengirim: ' + err.message, 'var(--red)');
   }
