@@ -1,7 +1,30 @@
 # Gemeos Coffee — toko
 
-Toko pelanggan di `gemeoscoffee.com`, beserta halaman pengelolanya di
-`/admin`. Statis, tanpa build step, di-deploy Cloudflare Pages dari `public/`.
+Toko pelanggan, beserta halaman pengelolanya di `/admin`. Di-deploy Cloudflare
+Pages: build command `node build.js`, output directory `dist`.
+
+`build.js` menarik katalog dari Supabase dan menuliskan satu berkas HTML utuh
+per produk dan per kategori — bukan halaman kosong yang diisi JavaScript.
+Perayap WhatsApp, Instagram, dan TikTok tidak menjalankan JavaScript, dan di
+Indonesia lewat situlah tautan produk paling sering menyebar.
+
+## Indeks pencarian mati sampai domainnya ada
+
+Selama variabel lingkungan `SITE_URL` belum diisi di Pages, seluruh situs
+dibangun dengan `noindex` dan `robots.txt` yang menolak semua perayap. Peringkat
+pencarian menempel ke alamat; membiarkan `pages.dev` terindeks berarti
+membuangnya begitu domain sungguhan dipasang.
+
+Begitu domain siap, isi `SITE_URL` dengan alamat lengkapnya
+(`https://gemeoscoffee.com`) di **Settings → Variables and secrets**, lalu
+jalankan ulang build. Itu satu-satunya yang menyalakan indeks.
+
+## Katalog berubah, halaman belum
+
+Halaman dibangun saat deploy, jadi mengubah katalog lewat `/admin` tidak
+langsung mengubah halaman yang tayang. Perlu build ulang — nanti lewat Deploy
+Hook yang dipanggil dari `/admin`, sementara ini lewat tombol di dashboard
+Cloudflare.
 
 Repo ini terpisah dari [`gemeos-coffee-v2`](https://github.com/gemeoscoffe/gemeos-coffee-v2)
 — dashboard pembukuan — supaya deploy toko tidak bisa menyentuh dashboard dan
