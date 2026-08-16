@@ -183,7 +183,7 @@ function halamanBeranda(param) {
     '</div>' +
     '<div class="pita">' +
       '<div class="wrap">' +
-        '<article><h3>Sangrai per pesanan</h3><p>Bukan stok lama yang menunggu di rak.</p></article>' +
+        '<article><h3>Murni 100%</h3><p>Kopi asli tanpa campuran apa pun.</p></article>' +
         '<article><h3>Pilih gilingan</h3><p>Biji utuh sampai halus espresso.</p></article>' +
         '<article><h3>Kirim seluruh Indonesia</h3><p>Lewat ekspedisi pilihanmu.</p></article>' +
       '</div>' +
