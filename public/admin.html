@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Halaman pengelola, bukan halaman toko: jangan sampai muncul di pencarian. -->
+<meta name="robots" content="noindex, nofollow">
+<title>Kelola Toko &middot; Gemeos Coffee</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ============================== Layar masuk ============================== -->
+<div class="gate hidden" id="login-gate">
+  <div class="gate-kotak">
+    <h1>Kelola Toko</h1>
+    <p>Masuk dengan email yang diizinkan mengelola katalog Gemeos Coffee.</p>
+
+    <div id="login-step-email">
+      <label for="login-email">Email</label>
+      <input id="login-email" type="email" autocomplete="email" placeholder="nama@contoh.com">
+      <button class="btn-primary" id="login-send-btn">Kirim Kode</button>
+    </div>
+
+    <div id="login-step-code" class="hidden">
+      <label for="login-code">Kode dari email <span id="login-code-for" class="muted"></span></label>
+      <input id="login-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+      <button class="btn-primary" id="login-verify-btn">Masuk</button>
+      <button class="btn-secondary" id="login-back-btn">Ganti Email</button>
+    </div>
+
+    <p id="login-status"></p>
+  </div>
+</div>
+
+<!-- ================================ Admin ================================= -->
+<div id="admin-shell" class="hidden">
+
+  <header class="topbar">
+    <span class="merek">Gemeos Coffee</span>
+    <span class="muted" style="font-size:13px">Kelola Toko</span>
+    <div class="tautan">
+      <a href="/" target="_blank" rel="noopener">Lihat toko</a>
+      <span id="user-email" class="muted"></span>
+      <button class="btn-secondary" id="signout-btn">Keluar</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <h1 class="judul-halaman">Katalog Toko</h1>
+    <p class="subjudul">Produk, varian, stok dan foto yang tampil di gemeoscoffee.com</p>
+
+    <div class="card">
+      <h3>Tambah Produk</h3>
+      <div class="row">
+        <div style="flex:1;min-width:220px"><label>Nama Produk</label><input id="toko-new-nama" placeholder="mis. Kopi Arabika Puntang Original"></div>
+        <div><label>Kategori</label><input id="toko-new-kategori" placeholder="mis. Arabika" style="width:170px"></div>
+        <div style="flex:1;min-width:240px"><label>Ringkas (opsional)</label><input id="toko-new-ringkas" placeholder="Satu kalimat yang tampil di kartu katalog"></div>
+        <button class="btn-primary" id="toko-add-btn">Tambah</button>
+      </div>
+      <p class="note">
+        Produk baru selalu masuk dalam keadaan <b>disembunyikan</b> &mdash; isi dulu varian dan fotonya, baru
+        tampilkan. <b>Kategori</b> jadi tombol filter di halaman katalog.
+      </p>
+      <p id="toko-add-status" style="margin-top:8px;font-size:13px"></p>
+    </div>
+
+    <div class="card">
+      <h3>Produk di Toko</h3>
+      <p class="card-note">
+        Kolom <b>Stok Terendah</b> adalah varian paling tipis di produk itu. Stok toko diisi tangan dan berdiri
+        sendiri &mdash; tidak diambil dari catatan bahan baku di dashboard. <b>Tidak dibatasi</b> berarti varian
+        itu selalu bisa dipesan.
+      </p>
+      <div id="toko-produk-table" class="muted" style="margin-top:12px">Memuat...</div>
+    </div>
+
+    <div id="toko-kelola" class="hidden"></div>
+  </main>
+
+</div>
+
+<script src="vendor/supabase.js"></script>
+<script src="config.js"></script>
+<script src="lib.js"></script>
+<script src="admin-katalog.js"></script>
+<script src="auth.js"></script>
+</body>
+</html>
