@@ -166,7 +166,9 @@ function jsonldProduk(data, p) {
     brand: { '@type': 'Brand', name: NAMA_TOKO },
     category: p.kategori
   };
-  if (foto.length) j.image = foto.map(function (f) { return RENDER.urlFoto(data.basisFoto, f.path); });
+  // Google mengambil gambar ini untuk hasil pencarian, jadi yang diberikan
+  // ukuran terbesar yang ada, bukan yang dipakai kartu katalog.
+  if (foto.length) j.image = foto.map(function (f) { return RENDER.urlFoto(data.basisFoto, f, 1600); });
 
   // Satu penawaran per ukuran, karena harganya memang berbeda per ukuran.
   // Menggabungkannya jadi satu rentang membuat harga yang tampil di hasil
@@ -221,7 +223,9 @@ async function bangun() {
   const alamat = [];
   const fotoPertama = function (p) {
     const f = RENDER.fotoDari(data, p.id)[0];
-    return f ? RENDER.urlFoto(data.basisFoto, f.path) : null;
+    // Kartu berbagi WhatsApp dan Facebook memakai gambar ini; 800 piksel sudah
+    // tajam di sana dan tidak membuat pratinjaunya lambat muncul.
+    return f ? RENDER.urlFoto(data.basisFoto, f, 800) : null;
   };
 
   // Beranda

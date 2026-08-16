@@ -45,7 +45,33 @@
     return WARNA[n];
   }
 
-  function urlFoto(basisFoto, path) { return basisFoto + '/' + path; }
+  // Dua bentuk foto hidup berdampingan. Yang diunggah sejak ada beberapa ukuran
+  // menyimpan nama dasar plus daftar lebarnya; yang lama menyimpan satu nama
+  // berkas apa adanya. Semua yang menyentuh foto lewat sini supaya bedanya
+  // tidak menyebar.
+  function lebarFoto(f) {
+    const l = f.lebar_tersedia || [];
+    return l.slice().sort(function (a, b) { return a - b; });
+  }
+
+  function urlFoto(basisFoto, f, lebarDiminta) {
+    // Dipanggil juga dengan path mentah dari pemakaian lama.
+    if (typeof f === 'string') return basisFoto + '/' + f;
+    const l = lebarFoto(f);
+    if (!l.length) return basisFoto + '/' + f.path;
+    const pas = l.find(function (w) { return w >= (lebarDiminta || 0); }) || l[l.length - 1];
+    return basisFoto + '/' + f.path + '-' + pas + '.webp';
+  }
+
+  // srcset menyerahkan pilihan ukuran ke browser, yang tahu lebar layar dan
+  // kerapatan pikselnya -- hal yang tidak bisa diketahui saat halaman dibangun.
+  function srcsetFoto(basisFoto, f) {
+    const l = lebarFoto(f);
+    if (l.length < 2) return '';
+    return l.map(function (w) {
+      return basisFoto + '/' + f.path + '-' + w + '.webp ' + w + 'w';
+    }).join(', ');
+  }
 
   function varianDari(data, produkId) {
     return data.varian.filter(function (v) { return v.produk_id === produkId; });
@@ -66,13 +92,18 @@
     return varianDari(data, p.id).reduce(function (m, v) { return Math.min(m, Number(v.harga)); }, Infinity);
   }
 
-  function gambar(data, p, lebar) {
+  // `sizes` memberi tahu browser seberapa lebar gambar ini akan tampil, supaya
+  // ia memilih berkas yang benar sebelum tata letaknya selesai dihitung.
+  function gambar(data, p, lebar, sizes) {
     const f = fotoDari(data, p.id)[0];
-    if (f) {
-      return '<img src="' + esc(urlFoto(data.basisFoto, f.path)) + '" alt="' + esc(f.alt || p.nama) +
-             '" width="' + lebar + '" height="' + lebar + '" loading="lazy" decoding="async">';
-    }
-    return '<div class="biji" style="--tone:' + warnaBiji(p.nama) + '"></div>';
+    if (!f) return '<div class="biji" style="--tone:' + warnaBiji(p.nama) + '"></div>';
+
+    const set = srcsetFoto(data.basisFoto, f);
+    return '<img src="' + esc(urlFoto(data.basisFoto, f, lebar)) + '"' +
+           (set ? ' srcset="' + esc(set) + '"' : '') +
+           (set && sizes ? ' sizes="' + esc(sizes) + '"' : '') +
+           ' alt="' + esc(f.alt || p.nama) + '"' +
+           ' width="' + lebar + '" height="' + lebar + '" loading="lazy" decoding="async">';
   }
 
   // Kalimat ringkas untuk meta description dan kartu berbagi. Dipakai apa adanya
@@ -103,7 +134,7 @@
         '<div class="foto">' +
           (habis ? '<span class="tanda habis">Habis</span>'
                  : diskon ? '<span class="tanda sale">Diskon</span>' : '') +
-          gambar(data, p, 500) +
+          gambar(data, p, 400, '(max-width: 640px) 92vw, (max-width: 1100px) 46vw, 280px') +
         '</div>' +
         '<div class="isi">' +
           '<h3>' + esc(p.nama) + '</h3>' +
@@ -171,7 +202,7 @@
               '<a class="tombol garis" href="' + MARKETPLACE + '" target="_blank" rel="noopener">Toko TikTok Shop</a>' +
             '</div>' +
           '</div>' +
-          '<div class="hero-gambar">' + gambar(data, sorot, 700) + '</div>' +
+          '<div class="hero-gambar">' + gambar(data, sorot, 800, '(max-width: 900px) 92vw, 45vw') + '</div>' +
         '</div>' +
       '</div>' +
       '<div class="pita">' +
@@ -228,7 +259,8 @@
     const kecil = foto.length > 1
       ? '<div class="galeri-kecil" id="galeri-kecil">' + foto.map(function (f, i) {
           return '<button type="button" data-foto="' + i + '" aria-pressed="' + (i === 0) + '" ' +
-            'aria-label="Foto ' + (i + 1) + '"><img src="' + esc(urlFoto(data.basisFoto, f.path)) +
+            'aria-label="Foto ' + (i + 1) + '"><img src="' + esc(urlFoto(data.basisFoto, f, 400)) +
+            '" data-besar="' + esc(urlFoto(data.basisFoto, f, 800)) +
             '" alt="" width="160" height="160" loading="lazy"></button>';
         }).join('') + '</div>'
       : '';
@@ -255,7 +287,7 @@
           '<div class="galeri">' +
             '<div class="galeri-utama" id="galeri-utama">' +
               (habis ? '<span class="tanda habis">Habis</span>' : '') +
-              gambar(data, p, 900) +
+              gambar(data, p, 800, '(max-width: 900px) 92vw, 45vw') +
             '</div>' +
             kecil +
           '</div>' +
@@ -297,7 +329,7 @@
 
   const API = {
     esc: esc, rp: rp, slugKategori: slugKategori, ringkasan: ringkasan,
-    urlFoto: urlFoto, varianDari: varianDari, fotoDari: fotoDari,
+    urlFoto: urlFoto, srcsetFoto: srcsetFoto, varianDari: varianDari, fotoDari: fotoDari,
     produkHabis: produkHabis, hargaTerendah: hargaTerendah,
     kategoriDaftar: kategoriDaftar,
     beranda: beranda, produk: produk,

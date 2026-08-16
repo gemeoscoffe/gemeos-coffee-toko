@@ -47,8 +47,24 @@ function tokoDaftarGiling(teks) {
   return keluar;
 }
 
-function tokoUrlFoto(path) {
-  return SUPABASE_URL + '/storage/v1/object/public/' + TOKO_BUCKET + '/' + path;
+// Dua bentuk foto hidup berdampingan: yang diunggah sejak ada beberapa ukuran
+// menyimpan nama dasar dan daftar lebarnya, yang lama menyimpan satu nama
+// berkas apa adanya. Semua yang membaca foto lewat sini supaya bedanya tidak
+// menyebar ke mana-mana.
+function tokoBerkasFoto(f) {
+  const lebar = f.lebar_tersedia || [];
+  if (!lebar.length) return [f.path];
+  return lebar.map(function(w) { return f.path + '-' + w + '.webp'; });
+}
+
+function tokoUrlFoto(f, lebarDiminta) {
+  const lebar = f.lebar_tersedia || [];
+  if (!lebar.length) return SUPABASE_URL + '/storage/v1/object/public/' + TOKO_BUCKET + '/' + f.path;
+  // Ambil yang paling kecil tapi masih cukup; kalau semuanya kurang, ambil yang
+  // terbesar.
+  const urut = lebar.slice().sort(function(a, b) { return a - b; });
+  const pas = urut.find(function(w) { return w >= (lebarDiminta || 0); }) || urut[urut.length - 1];
+  return SUPABASE_URL + '/storage/v1/object/public/' + TOKO_BUCKET + '/' + f.path + '-' + pas + '.webp';
 }
 
 // ---------------------------------------------------------------------------
@@ -219,7 +235,9 @@ async function hapusTokoProduk(id) {
     // File di Storage tidak ikut terhapus oleh cascade database, jadi dihapus
     // lebih dulu -- kalau tidak, bucketnya menumpuk file yang tidak lagi
     // dirujuk siapa pun.
-    for (const f of tokoFotoDari(id)) await hapusBerkasFoto(f.path);
+    for (const f of tokoFotoDari(id)) {
+      for (const berkas of tokoBerkasFoto(f)) await hapusBerkasFoto(berkas);
+    }
     await sbDelete('web_produk', 'id=eq.' + id);
     if (TOKO_PILIH === id) TOKO_PILIH = null;
     await loadTokoPage();
@@ -359,7 +377,7 @@ function renderTokoFotoList(p) {
 
   return '<div class="toko-foto-grid">' + rows.map(function(f, i) {
     return '<figure class="toko-foto">' +
-      '<img src="' + esc(tokoUrlFoto(f.path)) + '" alt="' + esc(f.alt || '') + '" loading="lazy">' +
+      '<img src="' + esc(tokoUrlFoto(f, 400)) + '" alt="' + esc(f.alt || '') + '" loading="lazy">' +
       '<figcaption>' + (i === 0 ? '<b>Gambar utama</b>' : 'Foto ' + (i + 1)) + '</figcaption>' +
       '<button class="btn-secondary toko-f-del" data-id="' + f.id + '">Hapus</button>' +
     '</figure>';
@@ -565,31 +583,82 @@ async function hapusBerkasFoto(path) {
   if (!res.ok && res.status !== 404) throw await sbError(res, 'hapus foto gagal');
 }
 
+// Tiga ukuran cukup: kartu katalog, halaman produk, dan layar rapat. Lebih
+// banyak berarti lebih banyak unggahan tanpa ada yang benar-benar melihat
+// bedanya.
+const LEBAR_FOTO = [400, 800, 1600];
+
+// Diubah ukurannya di browser sebelum diunggah, bukan di server dan bukan lewat
+// layanan pengubah gambar. Foto dari HP bisa 4000 piksel dan beberapa megabyte;
+// mengunggahnya utuh lalu mengecilkannya saat disajikan berarti membayar
+// ongkosnya dua kali. Foto yang aslinya lebih kecil dari ukuran target tidak
+// diperbesar -- itu hanya menambah berkas tanpa menambah detail.
+async function ubahUkuranFoto(file, lebar) {
+  const bitmap = await createImageBitmap(file);
+  const skala = Math.min(1, lebar / bitmap.width);
+  const w = Math.round(bitmap.width * skala);
+  const h = Math.round(bitmap.height * skala);
+
+  const kanvas = document.createElement('canvas');
+  kanvas.width = w;
+  kanvas.height = h;
+  const konteks = kanvas.getContext('2d');
+  konteks.imageSmoothingQuality = 'high';
+  konteks.drawImage(bitmap, 0, 0, w, h);
+  bitmap.close();
+
+  const blob = await new Promise(function (selesai) {
+    kanvas.toBlob(selesai, 'image/webp', 0.82);
+  });
+  if (!blob) throw new Error('Browser ini tidak bisa membuat WebP.');
+  return { blob: blob, lebar: w };
+}
+
 async function unggahTokoFoto(produkId, input) {
   const status = document.getElementById('toko-foto-status');
   const files = Array.from(input.files || []);
   if (files.length === 0) return;
 
-  const terlaluBesar = files.filter(function(f) { return f.size > 5 * 1024 * 1024; });
+  // Batasnya 25 MB, bukan 5 MB seperti dulu: yang diunggah bukan lagi berkas
+  // aslinya, melainkan hasil kecilnya, jadi foto besar dari kamera HP tidak
+  // perlu ditolak.
+  const terlaluBesar = files.filter(function(f) { return f.size > 25 * 1024 * 1024; });
   if (terlaluBesar.length) {
-    tokoStatus(status, false, 'Foto di atas 5 MB tidak diunggah: ' +
+    tokoStatus(status, false, 'Foto di atas 25 MB tidak diunggah: ' +
       terlaluBesar.map(function(f) { return f.name; }).join(', '));
     input.value = '';
     return;
   }
 
-  status.textContent = 'Mengunggah ' + files.length + ' foto...';
-  status.style.color = '';
-
   let urutan = tokoFotoDari(produkId).length;
   try {
-    for (const file of files) {
-      // Nama file dibuat sendiri: nama asli dari HP sering memuat spasi dan
-      // karakter yang tidak aman di URL, dan dua foto bisa bernama sama.
-      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
-      const path = produkId + '/' + Date.now() + '-' + urutan + '.' + ext;
-      await unggahBerkasFoto(path, file);
-      await sbWrite('POST', 'web_foto', '', { produk_id: produkId, path: path, urutan: urutan });
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      status.style.color = '';
+      status.textContent = 'Memproses foto ' + (i + 1) + ' dari ' + files.length + '...';
+
+      // Nama dibuat sendiri: nama asli dari HP sering memuat spasi dan karakter
+      // yang tidak aman di URL, dan dua foto bisa bernama sama. Nama dasar ini
+      // tanpa ukuran dan tanpa ekstensi -- ketiga berkasnya menempel di
+      // belakangnya.
+      const dasar = produkId + '/' + Date.now() + '-' + urutan;
+      const lebarJadi = [];
+
+      for (const target of LEBAR_FOTO) {
+        const hasil = await ubahUkuranFoto(file, target);
+        // Foto yang aslinya lebih kecil menghasilkan lebar yang sama untuk dua
+        // target; yang kedua tidak perlu diunggah lagi.
+        if (lebarJadi.indexOf(hasil.lebar) !== -1) continue;
+        await unggahBerkasFoto(dasar + '-' + hasil.lebar + '.webp', hasil.blob);
+        lebarJadi.push(hasil.lebar);
+      }
+
+      await sbWrite('POST', 'web_foto', '', {
+        produk_id: produkId,
+        path: dasar,
+        urutan: urutan,
+        lebar_tersedia: lebarJadi
+      });
       urutan++;
     }
     tokoStatus(status, true, files.length + ' foto diunggah.');
@@ -606,7 +675,9 @@ async function hapusTokoFoto(id) {
   const f = TOKO_FOTO.find(function(x) { return x.id === id; });
   if (!f || !confirm('Hapus foto ini?')) return;
   try {
-    await hapusBerkasFoto(f.path);
+    // Satu baris foto bisa punya tiga berkas; menghapus barisnya saja
+    // meninggalkan berkas yang tidak dirujuk siapa pun di bucket.
+    for (const berkas of tokoBerkasFoto(f)) await hapusBerkasFoto(berkas);
     await sbDelete('web_foto', 'id=eq.' + id);
     await loadTokoPage();
   } catch (err) {

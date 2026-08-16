@@ -65,10 +65,13 @@
       const besar = utama.querySelector('img');
       // Kalau produknya belum berfoto, yang ada di kotak utama bukan gambar
       // melainkan biji gambaran -- tidak ada yang perlu ditukar.
-      if (kecil && besar) {
-        besar.src = kecil.src;
-        besar.alt = kecil.alt;
-      }
+      if (!kecil || !besar) return;
+      // Jempolnya memuat berkas kecil; kotak utama harus mendapat yang besar,
+      // alamatnya dibawa di data-besar. srcset dikosongkan supaya browser tidak
+      // kembali memilih dari daftar foto sebelumnya.
+      besar.removeAttribute('srcset');
+      besar.src = kecil.dataset.besar || kecil.src;
+      besar.alt = kecil.alt;
     });
   }
 })();
