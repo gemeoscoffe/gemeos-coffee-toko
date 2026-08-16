@@ -19,6 +19,7 @@
 const fs = require('fs');
 const path = require('path');
 const RENDER = require('./public/render.js');
+const KONTEN = require('./konten.js');
 
 const PUBLIK = path.join(__dirname, 'public');
 const KELUAR = path.join(__dirname, 'dist');
@@ -110,8 +111,10 @@ function kaki() {
             '<a href="' + RENDER.MARKETPLACE + '" target="_blank" rel="noopener">TikTok Shop</a>' +
           '</section>' +
           '<section>' +
-            '<span class="plat">Hubungi</span>' +
-            '<a href="mailto:gemeoscoffe@gmail.com">gemeoscoffe@gmail.com</a>' +
+            '<span class="plat">Bantuan</span>' +
+            '<a href="/pengiriman/">Pengiriman</a>' +
+            '<a href="/retur/">Retur &amp; penukaran</a>' +
+            '<a href="/kontak/">Kontak</a>' +
           '</section>' +
         '</div>' +
         '<div class="kaki-bawah">' +
@@ -160,6 +163,26 @@ function halaman(opsi) {
     '<script defer src="https://static.cloudflareinsights.com/beacon.min.js" ' +
       'data-cf-beacon=\'{"token":"' + ANALYTICS_TOKEN + '"}\'></script>\n' +
     '</body>\n</html>\n';
+}
+
+// Halaman tulisan dirakit dari blok sederhana, bukan dari HTML mentah di
+// konten.js -- supaya yang menyunting kalimatnya tidak perlu tahu satu tag pun,
+// dan tidak mungkin merusak tata letak halaman dengan kurung yang lupa ditutup.
+function halamanTulisan(hal) {
+  const isi = hal.blok.map(function (b) {
+    if (b.h) return '<h2>' + RENDER.esc(b.h) + '</h2>';
+    if (b.p) return '<p>' + RENDER.esc(b.p) + '</p>';
+    if (b.ul) return '<ul>' + b.ul.map(function (x) { return '<li>' + RENDER.esc(x) + '</li>'; }).join('') + '</ul>';
+    if (b.tombol) return '<p><a class="tombol amber" href="' + RENDER.esc(b.tombol.ke) +
+      '" target="_blank" rel="noopener">' + RENDER.esc(b.tombol.teks) + '</a></p>';
+    return '';
+  }).join('');
+
+  return '<div class="wrap"><article class="tulisan-halaman">' +
+    '<span class="plat">Gemeos Coffee</span>' +
+    '<h1>' + RENDER.esc(hal.judul) + '</h1>' +
+    isi +
+    '</article></div>';
 }
 
 // ---------------------------------------------------------------------------
@@ -281,6 +304,17 @@ async function bangun() {
       jsonld: jsonldProduk(data, p)
     }));
     alamat.push({ url: '/produk/' + p.slug + '/', prioritas: '0.9' });
+  }
+
+  // Halaman tulisan
+  for (const hal of KONTEN) {
+    tulis('/' + hal.slug + '/', halaman({
+      alamat: '/' + hal.slug + '/',
+      judul: hal.judul + ' — Gemeos Coffee',
+      deskripsi: hal.ringkas,
+      isi: halamanTulisan(hal)
+    }));
+    alamat.push({ url: '/' + hal.slug + '/', prioritas: '0.4' });
   }
 
   const hariIni = new Date().toISOString().slice(0, 10);

@@ -553,3 +553,16 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
    diambil dari sini alih-alih dari padding bagian beranda yang jauh lebih besar. */
 .produk-atas + section, .produk-atas ~ section { padding: 40px 0; border-top: 1px solid var(--garis); }
 .produk-atas ~ section h2 { margin-bottom: 20px; }
+
+/* ---------------------------------------------------------------------------
+   Halaman tulisan: pengiriman, retur, kontak
+   --------------------------------------------------------------------------- */
+
+.tulisan-halaman { max-width: 66ch; padding: 56px 0 80px; }
+.tulisan-halaman h1 { margin: 10px 0 28px; }
+.tulisan-halaman h2 { font-size: 22px; margin: 34px 0 10px; }
+.tulisan-halaman h2:first-of-type { margin-top: 22px; }
+.tulisan-halaman p { margin: 0 0 14px; color: var(--kabut); }
+.tulisan-halaman ul { margin: 0 0 18px; padding-left: 20px; color: var(--kabut); }
+.tulisan-halaman li { margin-bottom: 7px; }
+.tulisan-halaman .tombol { margin-top: 4px; }
