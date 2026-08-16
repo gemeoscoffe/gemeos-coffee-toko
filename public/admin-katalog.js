@@ -196,6 +196,12 @@ async function setTokoAktif(id, aktif) {
     await sbWrite('PATCH', 'web_produk', 'id=eq.' + id, { aktif: aktif });
     if (p) p.aktif = aktif;
     renderTokoProduk();
+    // Etalase mengambil katalog sekali saja, saat halaman dimuat. Tab toko yang
+    // sudah terbuka tidak ikut berubah, dan tanpa kalimat ini sakelarnya
+    // terlihat seperti tidak bekerja.
+    tokoStatus(document.getElementById('toko-produk-status'), true,
+      '"' + (p ? p.nama : 'Produk') + '" sekarang ' + (aktif ? 'tampil' : 'disembunyikan') +
+      '. Muat ulang tab toko (F5) untuk melihat perubahannya.');
   } catch (err) {
     alert('Gagal mengubah: ' + err.message);
     renderTokoProduk();
