@@ -43,7 +43,18 @@ async function authSendCode() {
   btn.disabled = true;
   authSetStatus('Mengirim kode...');
   try {
-    const { error } = await SB.auth.signInWithOtp({ email: email });
+    // Email dari Supabase memuat dua jalan masuk: kode 6 angka dan tautan.
+    // Tanpa emailRedirectTo, tautannya memakai Site URL proyek -- yang menunjuk
+    // ke dashboard v2 -- jadi siapa pun yang mengklik tautan itu mendarat di
+    // aplikasi yang salah. Ini mengarahkannya kembali ke halaman ini.
+    //
+    // Alamat yang dikirim di sini juga harus terdaftar di Redirect URLs pada
+    // pengaturan Auth proyek; kalau tidak, Supabase mengabaikannya dan kembali
+    // memakai Site URL tanpa memberi tahu.
+    const { error } = await SB.auth.signInWithOtp({
+      email: email,
+      options: { emailRedirectTo: window.location.origin + '/admin' }
+    });
     if (error) throw error;
     document.getElementById('login-code-for').textContent = email;
     authStep('code');
