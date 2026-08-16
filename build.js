@@ -38,6 +38,18 @@ const BASIS = SITE_URL || (process.env.CF_PAGES_URL || 'https://gemeos-coffee-to
 
 const NAMA_TOKO = 'Gemeos Coffee';
 
+// Token Cloudflare Web Analytics. Memang ikut terkirim di HTML tiap halaman --
+// itu cara kerjanya, dan tidak membuka apa pun kalau dipakai orang lain.
+//
+// Dipilih karena tidak memakai cookie dan tidak melacak orang per orang, jadi
+// tidak butuh spanduk persetujuan yang menghalangi pembeli sebelum mereka
+// sempat melihat kopinya.
+//
+// Waktu domain sungguhan dipasang, hostname-nya harus ditambahkan di
+// Cloudflare → Web Analytics → Manage site; kalau tidak, kunjungan di domain
+// baru tidak terhitung.
+const ANALYTICS_TOKEN = '1ce0cd62d48c44f8b5955deee4e03d77';
+
 // ---------------------------------------------------------------------------
 // Ambil katalog
 // ---------------------------------------------------------------------------
@@ -145,6 +157,8 @@ function halaman(opsi) {
     '<main>' + opsi.isi + '</main>\n' +
     kaki() + '\n' +
     '<script src="/etalase.js" defer></script>\n' +
+    '<script defer src="https://static.cloudflareinsights.com/beacon.min.js" ' +
+      'data-cf-beacon=\'{"token":"' + ANALYTICS_TOKEN + '"}\'></script>\n' +
     '</body>\n</html>\n';
 }
 
