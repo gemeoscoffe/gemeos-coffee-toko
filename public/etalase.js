@@ -106,12 +106,20 @@ function kartuHTML(p) {
       '</div>' +
       '<div class="isi">' +
         '<h3>' + esc(p.nama) + '</h3>' +
-        (p.proses || p.roast
-          ? '<div class="spek">' + (p.proses ? '<b>' + esc(p.proses) + '</b>' : '') +
-            (p.roast ? '<b>' + esc(p.roast) + '</b>' : '') + '</div>'
+        // Baris di bawah nama memakai apa pun yang sudah diisi: origin dulu,
+        // karena itu yang membedakan satu kopi dari yang lain. Produk yang
+        // keterangannya masih kosong tidak menyisakan baris kosong.
+        (function() {
+          const asal = [p.origin, p.proses, p.roast].filter(Boolean).join(' · ');
+          return asal ? '<p class="asal">' + esc(asal) + '</p>' : '';
+        })() +
+        (varian.length
+          ? '<div class="ukuran">' + varian.map(function(v) {
+              return '<b>' + esc(v.label_ukuran) + '</b>';
+            }).join('') + '</div>'
           : '') +
-        '<div class="harga"><b>' + fmtRp(min) + '</b><span class="label">mulai dari</span></div>' +
-        '<span class="tombol">Lihat produk</span>' +
+        '<div class="harga"><b>' + fmtRp(min) + '</b><span class="plat">mulai dari</span></div>' +
+        '<span class="lanjut">Lihat produk &rarr;</span>' +
       '</div>' +
     '</a>';
 }
@@ -139,7 +147,7 @@ function halamanBeranda(param) {
 
   if (PRODUK.length === 0) {
     return '<div class="wrap"><div class="kosong">' +
-      '<span class="label">Katalog</span>' +
+      '<span class="plat">Katalog</span>' +
       '<h1>Etalasenya sedang disiapkan</h1>' +
       '<p>Belum ada produk yang ditampilkan di sini. Kopinya tetap bisa dibeli lewat toko resmi kami.</p>' +
       '<a class="tombol" href="' + TOKO_MARKETPLACE + '" target="_blank" rel="noopener">Belanja di TikTok Shop</a>' +
@@ -159,14 +167,14 @@ function halamanBeranda(param) {
   const sorot = PRODUK[0];
 
   return '' +
-    '<div class="wrap">' +
-      '<div class="hero">' +
+    '<div class="hero">' +
+      '<div class="wrap">' +
         '<div class="hero-teks">' +
-          '<span class="label">Roastery &middot; Gunung Puntang, Jawa Barat</span>' +
+          '<span class="plat">Roastery &middot; Gunung Puntang, Jawa Barat</span>' +
           '<h1>Kopi yang baru disangrai, bukan yang lama menunggu</h1>' +
           '<p>Arabika dan Robusta dari petani Jawa Barat, digiling sesuai alat seduhmu, dikirim dari roastery kami.</p>' +
           '<div class="aksi">' +
-            '<a class="tombol" href="#katalog">Lihat katalog</a>' +
+            '<a class="tombol amber" href="#katalog">Lihat katalog</a>' +
             '<a class="tombol garis" href="' + TOKO_MARKETPLACE + '" target="_blank" rel="noopener">Toko TikTok Shop</a>' +
           '</div>' +
         '</div>' +
@@ -174,18 +182,20 @@ function halamanBeranda(param) {
       '</div>' +
     '</div>' +
     '<div class="pita">' +
-      '<div><strong>Sangrai per pesanan</strong><span>Bukan stok lama yang menunggu di rak.</span></div>' +
-      '<div><strong>Pilih gilingan</strong><span>Biji utuh sampai halus espresso.</span></div>' +
-      '<div><strong>Kirim seluruh Indonesia</strong><span>Lewat ekspedisi pilihanmu.</span></div>' +
+      '<div class="wrap">' +
+        '<article><h3>Sangrai per pesanan</h3><p>Bukan stok lama yang menunggu di rak.</p></article>' +
+        '<article><h3>Pilih gilingan</h3><p>Biji utuh sampai halus espresso.</p></article>' +
+        '<article><h3>Kirim seluruh Indonesia</h3><p>Lewat ekspedisi pilihanmu.</p></article>' +
+      '</div>' +
     '</div>' +
     '<div class="wrap">' +
       '<section id="katalog">' +
-        '<div class="kepala-bagian"><div><span class="label">Katalog</span><h2>Semua kopi yang kami sangrai</h2></div></div>' +
+        '<div class="kepala-bagian"><div><span class="plat">Katalog</span><h2>Semua kopi yang kami sangrai</h2></div></div>' +
         '<div class="saring" id="saring">' + chip + '</div>' +
-        '<div class="hitung label">' + daftar.length + ' produk</div>' +
+        '<div class="hitung plat">' + daftar.length + ' produk</div>' +
         '<div class="grid">' +
           (daftar.length ? daftar.map(kartuHTML).join('')
-                         : '<p class="label">Belum ada produk di kategori ini.</p>') +
+                         : '<p class="plat">Belum ada produk di kategori ini.</p>') +
         '</div>' +
       '</section>' +
     '</div>';
@@ -243,21 +253,21 @@ function halamanProduk(slug) {
         '</div>' +
         '<div class="beli">' +
           '<div>' +
-            '<span class="label">' + esc(p.kategori) + '</span>' +
+            '<span class="plat">' + esc(p.kategori) + '</span>' +
             '<h1 style="margin-top:8px">' + esc(p.nama) + '</h1>' +
           '</div>' +
           '<div class="harga-besar" id="harga-tampil"></div>' +
           (p.ringkas ? '<p style="color:var(--ink-soft);max-width:46ch;margin:0">' + esc(p.ringkas) + '</p>' : '') +
           (varian.length
-            ? '<div class="pilihan"><span class="label">Ukuran</span><div class="opsi" id="opsi-ukuran">' + opsiUkuran + '</div></div>'
+            ? '<div class="pilihan"><span class="plat">Ukuran</span><div class="opsi" id="opsi-ukuran">' + opsiUkuran + '</div></div>'
             : '') +
           (giling.length
-            ? '<div class="pilihan"><span class="label">Pilihan gilingan</span><div class="opsi" id="opsi-giling">' + opsiGiling + '</div></div>'
+            ? '<div class="pilihan"><span class="plat">Pilihan gilingan</span><div class="opsi" id="opsi-giling">' + opsiGiling + '</div></div>'
             : '') +
           (habis
             ? '<button class="tombol mati" type="button" disabled>Stok habis</button>'
             : '<a class="tombol" id="tombol-beli" href="' + TOKO_MARKETPLACE + '" target="_blank" rel="noopener">Beli di TikTok Shop</a>') +
-          '<p class="label" style="margin:0">Pembayaran dan pengiriman diproses lewat toko resmi kami.</p>' +
+          '<p class="catatan-beli">Pembayaran dan pengiriman diproses lewat toko resmi kami.</p>' +
           '<dl class="meta">' +
             '<div><dt>Ketersediaan</dt><dd id="stok-tampil"></dd></div>' +
             (p.origin ? '<div><dt>Origin</dt><dd>' + esc(p.origin) + '</dd></div>' : '') +
@@ -266,7 +276,7 @@ function halamanProduk(slug) {
       '</div>' +
       keteranganHTML(p, varian) +
       (lain.length
-        ? '<section><div class="kepala-bagian"><div><span class="label">Mungkin cocok juga</span><h2>Produk lain</h2></div></div>' +
+        ? '<section><div class="kepala-bagian"><div><span class="plat">Mungkin cocok juga</span><h2>Produk lain</h2></div></div>' +
           '<div class="grid">' + lain.map(kartuHTML).join('') + '</div></section>'
         : '') +
     '</div>';
