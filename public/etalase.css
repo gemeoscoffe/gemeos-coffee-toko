@@ -295,7 +295,7 @@ section { padding: 72px 0; }
 
 .saring { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 26px; }
 
-.saring button {
+.saring a {
   padding: 9px 17px;
   background: transparent;
   color: var(--kabut);
@@ -305,12 +305,12 @@ section { padding: 72px 0; }
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  cursor: pointer;
+  text-decoration: none;
   transition: border-color 0.15s ease, color 0.15s ease;
 }
 
-.saring button:hover { border-color: var(--tinta); color: var(--tinta); }
-.saring button[aria-pressed="true"] { background: var(--sangrai); color: var(--susu); border-color: var(--sangrai); }
+.saring a:hover { border-color: var(--tinta); color: var(--tinta); }
+.saring a[aria-current="page"] { background: var(--sangrai); color: var(--susu); border-color: var(--sangrai); }
 
 .hitung { margin-bottom: 20px; }
 
@@ -538,3 +538,18 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
 .kaki-bawah .plat { color: var(--amber-muda); }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* ---------------------------------------------------------------------------
+   Tulisan produk dan status stok
+   --------------------------------------------------------------------------- */
+
+.tulisan { max-width: 66ch; }
+.tulisan p { margin: 0 0 16px; color: var(--kabut); }
+
+.habis-teks { color: var(--amber); }
+.siap-teks { color: var(--kabut); }
+
+/* Bagian keterangan di halaman produk memakai <section> biasa, jadi jaraknya
+   diambil dari sini alih-alih dari padding bagian beranda yang jauh lebih besar. */
+.produk-atas + section, .produk-atas ~ section { padding: 40px 0; border-top: 1px solid var(--garis); }
+.produk-atas ~ section h2 { margin-bottom: 20px; }
