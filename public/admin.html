@@ -13,6 +13,7 @@
 <!-- ============================== Layar masuk ============================== -->
 <div class="gate hidden" id="login-gate">
   <div class="gate-kotak">
+    <div class="gate-merek"><span class="brand-mark" aria-hidden="true">G</span>GEMEOS<span>COFFEE</span></div>
     <h1>Kelola Toko</h1>
     <p>Masuk dengan email yang diizinkan mengelola katalog Gemeos Coffee.</p>
 
@@ -46,76 +47,113 @@
 <!-- ================================ Admin ================================= -->
 <div id="admin-shell" class="hidden">
 
-  <header class="topbar">
-    <span class="merek">Gemeos Coffee</span>
-    <span class="muted" style="font-size:13px">Kelola Toko</span>
-    <div class="tautan">
-      <a href="/" target="_blank" rel="noopener">Lihat toko</a>
-      <span id="user-email" class="muted"></span>
-      <button class="btn-secondary" id="signout-btn">Keluar</button>
-    </div>
-  </header>
+  <!-- Menunya dikelompokkan, bukan satu daftar rata. Katalog dan isi halaman
+       adalah dua pekerjaan yang berbeda: yang satu barang dengan harga dan
+       stok, yang satu tulisan dan foto tentang usahanya. Sebelum ini keduanya
+       bertumpuk di satu gulungan panjang, dan bagian "Halaman Website" baru
+       ketemu setelah melewati seluruh tabel varian. -->
+  <aside class="sidebar">
+    <div class="sidebar-brand"><span class="brand-mark" aria-hidden="true">G</span>GEMEOS<span>COFFEE</span></div>
+    <nav class="sidebar-nav">
 
-  <main class="main">
-    <h1 class="judul-halaman">Katalog Toko</h1>
-    <p class="subjudul">Produk, varian, stok dan foto yang tampil di gemeoscoffee.com</p>
+      <div class="nav-group-title">Katalog</div>
+      <a href="#" id="nav-produk" class="nav-link active">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16l-1 11.2A2 2 0 0 1 17 21H7a2 2 0 0 1-2-1.8Z"/><path d="M9 11V7a3 3 0 0 1 6 0v4"/></svg>
+        Produk &amp; Varian
+      </a>
 
-    <!-- Halaman toko dibangun sekali saat deploy, bukan dirakit di browser tiap
-         kunjungan. Perubahan di halaman ini masuk database seketika, tapi baru
-         terlihat pembeli setelah dibangun ulang -- dan itu bagian yang paling
-         mudah terlupa, karena semua yang tampak di halaman ini sudah benar. -->
-    <div class="card">
-      <h3>Terbitkan Perubahan</h3>
-      <p class="card-note">
-        Yang disunting di halaman ini <b>belum terlihat pembeli</b> sampai halaman tokonya dibangun ulang.
-        Tekan tombol ini setelah selesai menyunting &mdash; sekali saja cukup untuk semua perubahan
-        sekaligus. Toko berubah satu sampai dua menit kemudian.
-      </p>
-      <button class="btn-primary" id="toko-bangun-btn">Terbitkan ke Toko</button>
-      <p id="toko-bangun-status" style="margin-top:10px;font-size:13px"></p>
-    </div>
+      <div class="nav-group-title">Halaman Website</div>
+      <a href="#" id="nav-depan" class="nav-link">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 4l9 6.5"/><path d="M5 10v9.5h14V10"/><path d="M10 20v-5h4v5"/></svg>
+        Halaman Depan
+      </a>
+      <a href="#" id="nav-tentang" class="nav-link">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.6h.01"/></svg>
+        Tentang Kami
+      </a>
 
-    <div class="card">
-      <h3>Tambah Produk</h3>
-      <div class="row">
-        <div style="flex:1;min-width:220px"><label>Nama Produk</label><input id="toko-new-nama" placeholder="mis. Kopi Arabika Puntang Original"></div>
-        <div><label>Kategori</label><input id="toko-new-kategori" placeholder="mis. Arabika" style="width:170px"></div>
-        <div style="flex:1;min-width:240px"><label>Ringkas (opsional)</label><input id="toko-new-ringkas" placeholder="Satu kalimat yang tampil di kartu katalog"></div>
-        <button class="btn-primary" id="toko-add-btn">Tambah</button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <span class="user-avatar" id="user-avatar" aria-hidden="true">?</span>
+        <span id="user-email"></span>
       </div>
-      <p class="note">
-        Produk baru selalu masuk dalam keadaan <b>disembunyikan</b> &mdash; isi dulu varian dan fotonya, baru
-        tampilkan. <b>Kategori</b> jadi tombol filter di halaman katalog.
-      </p>
-      <p id="toko-add-status" style="margin-top:8px;font-size:13px"></p>
+      <button class="btn-secondary" id="signout-btn">Keluar</button>
+      <p class="sidebar-meta"><a href="/" target="_blank" rel="noopener">Lihat toko &nearr;</a></p>
+    </div>
+  </aside>
+
+  <div class="main">
+
+    <!-- Tombol terbit tinggal di topbar, bukan di salah satu halaman: satu
+         build menerbitkan semuanya sekaligus, jadi menaruhnya di satu halaman
+         berarti perubahan yang dibuat di halaman lain terlihat tidak perlu
+         diterbitkan. -->
+    <header class="topbar">
+      <button class="nav-toggle" id="nav-toggle" aria-label="Buka menu">&#9776;</button>
+      <div class="topbar-title">
+        <h1 id="page-title-text">Produk &amp; Varian</h1>
+        <p class="topbar-sub" id="page-subtitle">Yang dijual, ukurannya, harganya, stoknya, fotonya</p>
+      </div>
+      <span id="toko-bangun-status" class="terbit-status hidden"></span>
+      <button class="btn-primary" id="toko-bangun-btn">Terbitkan ke Toko</button>
+    </header>
+
+    <!-- ---------------------------- Produk ---------------------------- -->
+    <div class="content" id="page-produk">
+
+      <div class="card">
+        <h3>Tambah Produk</h3>
+        <div class="row">
+          <div style="flex:1;min-width:220px"><label>Nama Produk</label><input id="toko-new-nama" placeholder="mis. Kopi Arabika Puntang Original"></div>
+          <div><label>Kategori</label><input id="toko-new-kategori" placeholder="mis. Arabika" style="width:170px"></div>
+          <div style="flex:1;min-width:240px"><label>Ringkas (opsional)</label><input id="toko-new-ringkas" placeholder="Satu kalimat yang tampil di kartu katalog"></div>
+          <button class="btn-primary" id="toko-add-btn">Tambah</button>
+        </div>
+        <p class="note">
+          Produk baru selalu masuk dalam keadaan <b>disembunyikan</b> &mdash; isi dulu varian dan fotonya, baru
+          tampilkan. <b>Kategori</b> jadi tombol filter di halaman katalog.
+        </p>
+        <p id="toko-add-status" style="margin-top:8px;font-size:13px"></p>
+      </div>
+
+      <div class="card">
+        <h3>Produk di Toko</h3>
+        <p class="card-note">
+          Kolom <b>Stok Terendah</b> adalah varian paling tipis di produk itu. Stok toko diisi tangan dan berdiri
+          sendiri &mdash; tidak diambil dari catatan bahan baku di dashboard. <b>Tidak dibatasi</b> berarti varian
+          itu selalu bisa dipesan.
+        </p>
+        <div id="toko-produk-table" class="muted" style="margin-top:12px">Memuat...</div>
+        <p id="toko-produk-status" style="margin-top:10px;font-size:13px"></p>
+      </div>
+
+      <div id="toko-kelola" class="hidden"></div>
     </div>
 
-    <div class="card">
-      <h3>Produk di Toko</h3>
-      <p class="card-note">
-        Kolom <b>Stok Terendah</b> adalah varian paling tipis di produk itu. Stok toko diisi tangan dan berdiri
-        sendiri &mdash; tidak diambil dari catatan bahan baku di dashboard. <b>Tidak dibatasi</b> berarti varian
-        itu selalu bisa dipesan.
-      </p>
-      <div id="toko-produk-table" class="muted" style="margin-top:12px">Memuat...</div>
-      <p id="toko-produk-status" style="margin-top:10px;font-size:13px"></p>
+    <!-- ------------------------ Halaman Depan ------------------------- -->
+    <div class="content hidden" id="page-depan">
+      <div id="toko-seksi-depan"><p class="muted">Memuat...</p></div>
     </div>
 
-    <div id="toko-kelola" class="hidden"></div>
+    <!-- ------------------------- Tentang Kami ------------------------- -->
+    <div class="content hidden" id="page-tentang">
+      <div id="toko-seksi-tentang"><p class="muted">Memuat...</p></div>
+    </div>
 
-    <!-- Isi halaman depan dan Tentang Kami. Terpisah dari katalog karena
-         bentuknya beda: katalog itu barang dengan harga dan stok, yang ini
-         tulisan dan foto tentang usahanya. -->
-    <h1 class="judul-halaman" style="margin-top:34px">Halaman Website</h1>
-    <p class="subjudul">Tulisan dan foto di halaman depan dan halaman Tentang Kami</p>
-    <div id="toko-seksi"><p class="muted">Memuat...</p></div>
-  </main>
+  </div>
+
+  <!-- Di bawah 900px sidebarnya jadi laci yang menutupi halaman; latar gelap
+       ini yang menutupnya lagi kalau disentuh di luar. -->
+  <div class="sidebar-overlay hidden" id="sidebar-overlay"></div>
 
 </div>
 
 <script src="vendor/supabase.js"></script>
 <script src="config.js"></script>
 <script src="lib.js"></script>
+<script src="admin-nav.js"></script>
 <script src="admin-katalog.js"></script>
 <script src="admin-seksi.js"></script>
 <script src="auth.js"></script>

@@ -121,6 +121,9 @@ async function authOnSignedIn(session) {
   document.getElementById('login-verify-btn').disabled = false;
   document.getElementById('user-email').textContent = AUTH_EMAIL;
   document.getElementById('user-email').title = AUTH_EMAIL;
+  // Alamat email panjang dipotong di sidebar yang sempit; inisialnya yang tetap
+  // terbaca, dan itu sudah cukup untuk tahu sedang masuk sebagai siapa.
+  document.getElementById('user-avatar').textContent = (AUTH_EMAIL || '?').charAt(0);
   authShowGate(false);
   loadTokoPage();
   loadSeksiPage();

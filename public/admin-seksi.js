@@ -121,10 +121,10 @@ const SEKSI_BENTUK = {
 // Urutan tampil di layar sengaja mengikuti urutan bagian itu di halaman aslinya,
 // bukan abjad: yang sedang disunting jadi mudah dicocokkan dengan yang dilihat
 // di tab sebelah.
-const SEKSI_URUT = [
-  'home/hero', 'home/cerita', 'home/alasan', 'home/testimoni', 'home/lokasi',
-  'tentang/hero', 'tentang/isi'
-];
+const SEKSI_LAYAR = {
+  'toko-seksi-depan':   ['home/hero', 'home/cerita', 'home/alasan', 'home/testimoni', 'home/lokasi'],
+  'toko-seksi-tentang': ['tentang/hero', 'tentang/isi']
+};
 
 function seksiKunci(s) { return s.halaman + '/' + s.blok; }
 
@@ -153,14 +153,17 @@ function seksiBerkasFoto(s) {
 // ---------------------------------------------------------------------------
 
 async function loadSeksiPage() {
-  const el = document.getElementById('toko-seksi');
-  if (!el) return;
-  el.innerHTML = '<p class="muted">Memuat...</p>';
+  const layar = Object.keys(SEKSI_LAYAR).map(function(id) { return document.getElementById(id); });
+  if (layar.some(function(el) { return !el; })) return;
+
+  layar.forEach(function(el) { el.innerHTML = '<p class="muted">Memuat...</p>'; });
   try {
     SEKSI = await sbSelect('web_seksi', 'select=*&order=halaman,blok,urutan');
     renderSeksi();
   } catch (err) {
-    el.innerHTML = '<p class="muted">Gagal memuat: ' + esc(err.message) + '</p>';
+    layar.forEach(function(el) {
+      el.innerHTML = '<p class="muted">Gagal memuat: ' + esc(err.message) + '</p>';
+    });
   }
 }
 
@@ -215,34 +218,33 @@ function renderSeksiBaris(s, bentuk, nomor) {
   '</div>';
 }
 
-function renderSeksi() {
-  const el = document.getElementById('toko-seksi');
+function renderSeksiKartu(kunci) {
+  const bentuk = SEKSI_BENTUK[kunci];
+  const baris = seksiBarisDari(kunci);
 
-  el.innerHTML = SEKSI_URUT.map(function(kunci) {
-    const bentuk = SEKSI_BENTUK[kunci];
-    const baris = seksiBarisDari(kunci);
-    const pisah = kunci.split('/');
-
-    return '<div class="card">' +
-      '<h3>' + bentuk.nama + '</h3>' +
-      '<p class="card-note">' + bentuk.catatan +
-        ' <span class="muted">Tampil di <code>' +
-        (pisah[0] === 'home' ? '/' : '/tentang/') + '</code>.</span></p>' +
-      (baris.length
-        ? baris.map(function(s, i) { return renderSeksiBaris(s, bentuk, i + 1); }).join('')
-        : '<p class="muted">Belum ada isinya.</p>') +
-      (bentuk.banyak
-        ? '<button class="btn-secondary seksi-tambah" data-kunci="' + kunci + '" style="margin-top:10px">' +
-            'Tambah ' + bentuk.nama + '</button>'
-        : '') +
-    '</div>';
-  }).join('');
-
-  wireSeksi();
+  return '<div class="card">' +
+    '<h3>' + bentuk.nama + '</h3>' +
+    '<p class="card-note">' + bentuk.catatan + '</p>' +
+    (baris.length
+      ? baris.map(function(s, i) { return renderSeksiBaris(s, bentuk, i + 1); }).join('')
+      : '<p class="muted">Belum ada isinya.</p>') +
+    (bentuk.banyak
+      ? '<button class="btn-secondary seksi-tambah" data-kunci="' + kunci + '" style="margin-top:10px">' +
+          'Tambah ' + bentuk.nama + '</button>'
+      : '') +
+  '</div>';
 }
 
-function wireSeksi() {
-  const el = document.getElementById('toko-seksi');
+function renderSeksi() {
+  Object.keys(SEKSI_LAYAR).forEach(function(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = SEKSI_LAYAR[id].map(renderSeksiKartu).join('');
+    wireSeksi(el);
+  });
+}
+
+function wireSeksi(el) {
 
   el.querySelectorAll('.seksi-isi').forEach(function(i) {
     i.addEventListener('change', function() {

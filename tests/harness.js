@@ -110,4 +110,9 @@ function buatContext(berkas) {
 
 function buatContextAdmin() { return buatContext(['admin-katalog.js']); }
 
-module.exports = { buatContext, buatContextAdmin, ambil, pasang, elemenPalsu };
+// `admin-seksi.js` ikut memuat `admin-katalog.js` karena pembantu fotonya
+// (LEBAR_FOTO, ubahUkuranFoto, unggahBerkasFoto) tinggal di sana -- urutannya
+// sama dengan urutan <script> di admin.html.
+function buatContextSeksi() { return buatContext(['admin-katalog.js', 'admin-seksi.js']); }
+
+module.exports = { buatContext, buatContextAdmin, buatContextSeksi, ambil, pasang, elemenPalsu };

@@ -20,6 +20,12 @@
   --green: #15803d;
   --red: #dc2626;
   --radius: 10px;
+  --radius-sm: 8px;
+  --sidebar-bg: #0f172a;
+  --sidebar-text: #94a3b8;
+  --sidebar-hover: rgba(255, 255, 255, .07);
+  --brand-gold: #e8a33d;
+  --shadow-lg: 0 18px 40px rgba(15, 23, 42, .28);
 }
 
 * { box-sizing: border-box; }
@@ -43,27 +49,174 @@ a { color: var(--blue); }
 
 /* ---------------------------------------------------------------------------
    Kerangka
+
+   Bentuknya sama dengan dashboard gemeos-coffee-v2: sidebar gelap berkelompok
+   di kiri, topbar terang berisi judul halaman, isinya yang menggulung. Bukan
+   demi kembar tampilan -- dua situs ini dikelola orang yang sama, dan menu yang
+   berbeda cara kerjanya di dua tempat berarti dua hal yang harus diingat.
+
+   Yang menggulung hanya `.content`, bukan halaman. Dengan begitu topbar dan
+   tombol Terbitkan tetap di tempatnya waktu tabel varian yang panjang digulung
+   sampai bawah.
    --------------------------------------------------------------------------- */
 
-.topbar {
+#admin-shell {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 22px;
-  background: #0f172a;
-  color: #e2e8f0;
+  height: 100vh;
+  /* dvh mengikuti bilah alamat browser HP yang menyusut; vh cadangannya. */
+  height: 100dvh;
+  overflow: hidden;
 }
 
-.topbar .merek { font-weight: 700; letter-spacing: -0.01em; }
-.topbar .tautan { margin-left: auto; display: flex; align-items: center; gap: 16px; font-size: 14px; }
-.topbar a { color: #cbd5e1; text-decoration: none; }
-.topbar a:hover { color: #fff; text-decoration: underline; }
-.topbar #user-email { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* ---------- Sidebar ---------- */
 
-.main { max-width: 1180px; margin: 0 auto; padding: 22px; }
+.sidebar {
+  width: 244px;
+  flex-shrink: 0;
+  background: var(--sidebar-bg);
+  color: #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(255, 255, 255, .06);
+}
 
-.judul-halaman { margin: 6px 0 4px; font-size: 22px; letter-spacing: -0.02em; }
-.subjudul { margin: 0 0 18px; color: var(--text-faint); font-size: 14px; }
+.sidebar-brand {
+  height: 64px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: .6px;
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, .07);
+}
+.sidebar-brand span { color: var(--brand-gold); }
+
+.brand-mark {
+  width: 32px; height: 32px; flex-shrink: 0;
+  border-radius: 9px;
+  background: linear-gradient(140deg, var(--brand-gold), #d98a1f);
+  color: #40200a;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 800; letter-spacing: 0;
+}
+
+.sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Katalog dan isi halaman adalah dua pekerjaan berbeda; judul kelompok yang
+   memisahkannya lebih murah daripada menjelaskannya lagi di tiap kartu. */
+.nav-group-title {
+  font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: #64748b; padding: 0 14px; margin: 14px 0 5px;
+}
+.nav-group-title:first-child { margin-top: 0; }
+
+.nav-link {
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 14px; border-radius: var(--radius-sm);
+  color: var(--sidebar-text); text-decoration: none;
+  font-size: 13.5px; font-weight: 500;
+  transition: background .15s ease, color .15s ease;
+}
+.nav-link:hover { background: var(--sidebar-hover); color: #f1f5f9; }
+.nav-link .nav-icon { width: 17px; height: 17px; flex-shrink: 0; opacity: .8; }
+.nav-link.active {
+  background: var(--blue); color: #fff; font-weight: 600;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, .4);
+}
+.nav-link.active .nav-icon { opacity: 1; }
+
+.sidebar-footer {
+  margin-top: auto; flex-shrink: 0;
+  padding: 14px 16px 16px; font-size: 11px; color: #64748b;
+  border-top: 1px solid rgba(255, 255, 255, .07);
+}
+.user-chip { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
+.user-avatar {
+  width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%;
+  background: rgba(255, 255, 255, .1); color: #e2e8f0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; text-transform: uppercase;
+}
+#user-email {
+  color: #cbd5e1; font-size: 12px; line-height: 1.35;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sidebar-footer .btn-secondary {
+  width: 100%;
+  background: rgba(255, 255, 255, .08); color: #e2e8f0; border-color: rgba(255, 255, 255, .12);
+}
+.sidebar-footer .btn-secondary:hover { background: rgba(255, 255, 255, .14); color: #fff; }
+.sidebar-meta { margin: 12px 0 0; line-height: 1.5; }
+.sidebar-meta a { color: #94a3b8; text-decoration: none; }
+.sidebar-meta a:hover { color: #e2e8f0; text-decoration: underline; }
+
+/* ---------- Bagian utama ---------- */
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+.topbar {
+  height: 64px; flex-shrink: 0;
+  background: rgba(255, 255, 255, .92);
+  backdrop-filter: saturate(180%) blur(8px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 14px;
+  padding: 0 clamp(14px, 2.4vw, 30px);
+  z-index: 10;
+}
+.topbar-title { flex: 1; min-width: 0; }
+.topbar h1 {
+  font-size: 17px; font-weight: 650; margin: 0; letter-spacing: -.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.topbar-sub {
+  margin: 1px 0 0; font-size: 12.5px; color: var(--text-faint);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Kabar build tampil sebagai pil di sebelah tombolnya, bukan baris teks di
+   bawah kartu: tombolnya sekarang di topbar, dan pesan yang menambah tinggi
+   topbar akan menggeser seluruh halaman tiap kali tombolnya ditekan. */
+.terbit-status {
+  font-size: 12.5px; font-weight: 600;
+  padding: 5px 12px; border-radius: 999px;
+  background: #f1f5f9; color: var(--text-muted);
+  max-width: 42ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.terbit-status.ok  { color: var(--green); background: #ecfdf3; }
+.terbit-status.err { color: var(--red);   background: #fef2f2; }
+
+.nav-toggle {
+  display: none; background: transparent; color: var(--text);
+  border: 1px solid var(--border); box-shadow: none;
+  font-size: 18px; line-height: 1; padding: 8px 11px; border-radius: var(--radius-sm);
+}
+.nav-toggle:hover { background: #f3f4f6; }
+
+.sidebar-overlay {
+  position: fixed; inset: 0; background: rgba(15, 23, 42, .55); z-index: 40;
+  backdrop-filter: blur(2px);
+}
+
+.content {
+  flex: 1; overflow-y: auto;
+  padding: 22px clamp(14px, 2.4vw, 30px) 56px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+/* Di monitor lebar, tabel yang membentang penuh berubah jadi hamparan kosong
+   dengan angka di kedua ujungnya. */
+.content > * { width: 100%; max-width: 1240px; margin-inline: auto; }
 
 /* ---------------------------------------------------------------------------
    Kartu dan formulir
@@ -156,7 +309,14 @@ td code { background: var(--hover); border: 1px solid var(--border); border-radi
    Layar masuk
    --------------------------------------------------------------------------- */
 
-.gate { min-height: 100vh; display: grid; place-items: center; padding: 22px; }
+.gate { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 22px; }
+
+.gate-merek {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 700; font-size: 15px; letter-spacing: .6px;
+  margin-bottom: 18px;
+}
+.gate-merek span { color: #b8791d; }
 
 .gate-kotak {
   width: 100%;
@@ -175,14 +335,6 @@ td code { background: var(--hover); border: 1px solid var(--border); border-radi
 .gate-kotak .btn-secondary { width: 100%; margin-top: 8px; }
 #login-status { margin: 14px 0 0; font-size: 13px; min-height: 19px; }
 #login-code { letter-spacing: 0.3em; text-align: center; font-size: 18px; }
-
-/* ---------------------------------------------------------------------------
-   Etalase sementara
-   --------------------------------------------------------------------------- */
-
-.segera { min-height: 100vh; display: grid; place-items: center; padding: 22px; text-align: center; }
-.segera h1 { margin: 0 0 10px; font-size: 26px; letter-spacing: -0.02em; }
-.segera p { margin: 0 0 20px; color: var(--text-faint); max-width: 44ch; }
 
 /* --- Halaman Website: isi halaman depan dan Tentang Kami -------------------
  *
@@ -219,3 +371,47 @@ td code { background: var(--hover); border: 1px solid var(--border); border-radi
 }
 
 .seksi-baris textarea { min-height: 84px; }
+
+
+/* ---------------------------------------------------------------------------
+   Layar sempit
+
+   Di bawah 900px sidebarnya jadi laci yang meluncur dari kiri. Tanpa ini,
+   menu selebar 244px memakan lebih dari separuh layar HP dan yang tersisa untuk
+   tabel varian tinggal sejengkal.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .nav-toggle { display: block; }
+
+  .sidebar {
+    position: fixed; top: 0; bottom: 0; left: 0; z-index: 50;
+    transform: translateX(-100%); transition: transform .22s ease;
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  .topbar { height: 56px; gap: 10px; }
+  .topbar h1 { font-size: 15.5px; }
+  .topbar-sub { display: none; }        /* di HP, judulnya saja yang berguna */
+  .terbit-status { display: none; }     /* pesannya panjang; tombolnya yang penting */
+  #toko-bangun-btn { padding: 8px 12px; font-size: 13px; }
+
+  .content { padding: 14px 14px 40px; gap: 14px; }
+  .card { padding: 16px; }
+
+  /* Kolom formulir jadi selebar layar supaya bisa disentuh dan tidak meluber.
+     !important karena beberapa kotak membawa style="flex:1" dari HTML-nya, yang
+     tanpa ini menang dan menyisakan kolom selebar jari. */
+  .row > div { flex: 1 1 100% !important; min-width: 0; }
+  .row input, .row select, .row textarea { width: 100%; }
+  .row button { flex: 1 1 auto; }
+}
+
+@media (min-width: 901px) {
+  .sidebar-overlay { display: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}

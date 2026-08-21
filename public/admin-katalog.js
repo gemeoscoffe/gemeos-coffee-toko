@@ -805,13 +805,21 @@ async function hapusTokoFoto(id) {
 // jadi menempelkannya di sini sama saja dengan menyerahkannya ke setiap
 // pengunjung. Fungsi `bangun-ulang` di Supabase yang memegangnya, dan fungsi
 // itu memeriksa dulu apakah email pemanggil ada di `app_users`.
+// Kabarnya tampil sebagai pil di sebelah tombolnya, dan judul lengkapnya
+// disimpan di `title`: pilnya dipotong kalau kalimatnya panjang, dan pesan
+// galat yang terpotong tanpa cara membacanya utuh sama saja dengan tidak ada.
+function terbitStatus(el, jenis, pesan) {
+  el.textContent = pesan;
+  el.title = pesan;
+  el.className = 'terbit-status' + (jenis ? ' ' + jenis : '');
+}
+
 async function bangunUlangToko() {
   const btn = document.getElementById('toko-bangun-btn');
   const status = document.getElementById('toko-bangun-status');
 
   btn.disabled = true;
-  status.style.color = '';
-  status.textContent = 'Meminta build...';
+  terbitStatus(status, '', 'Meminta build...');
 
   try {
     const res = await fetch(SUPABASE_URL + '/functions/v1/bangun-ulang', {
@@ -820,9 +828,9 @@ async function bangunUlangToko() {
     });
     const data = await res.json().catch(function() { return {}; });
     if (!res.ok) throw new Error(data.pesan || 'Gagal memicu build: ' + res.status);
-    tokoStatus(status, true, data.pesan || 'Build dimulai.');
+    terbitStatus(status, 'ok', data.pesan || 'Build dimulai.');
   } catch (err) {
-    tokoStatus(status, false, err.message);
+    terbitStatus(status, 'err', err.message);
   } finally {
     // Tombolnya dinyalakan lagi setelah jeda yang sama dengan jeda di fungsinya,
     // supaya orang tidak menekan berkali-kali menunggu halaman berubah -- satu

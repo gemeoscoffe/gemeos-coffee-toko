@@ -77,7 +77,11 @@ depan serta halaman Tentang Kami ada di `web_seksi`, satu baris per bagian:
 | `tentang/hero` | Kepala halaman Tentang Kami. |
 | `tentang/isi` | Bagian bertumpuk, fotonya berselang-seling kiri-kanan. |
 
-Semuanya disunting di `/admin` bagian **Halaman Website**. Bagian yang belum
+Semuanya disunting di `/admin`, menu **Halaman Depan** dan **Tentang Kami**.
+Sidebarnya berkelompok dan bentuknya sengaja sama dengan dashboard v2 — dua
+situs ini dikelola orang yang sama, dan menu yang berbeda cara kerjanya di dua
+tempat berarti dua hal yang harus diingat. Tombol **Terbitkan ke Toko** duduk di
+topbar, bukan di salah satu halaman: satu build menerbitkan semuanya sekaligus. Bagian yang belum
 diisi disimpan `aktif = false` dan tidak digambar sama sekali: judul tanpa isi
 terlihat seperti halaman yang rusak, sedangkan halaman yang lebih pendek hanya
 terlihat ringkas — dan itu keadaan yang jujur selama isinya memang belum ditulis.
@@ -96,6 +100,7 @@ dipercaya.
 | `public/etalase.js` | Pilihan ukuran dan galeri foto di halaman produk. |
 | `public/etalase.css` | Gaya etalase. |
 | `public/admin.html` | Halaman kelola. |
+| `public/admin-nav.js` | Perpindahan halaman di sidebar `/admin`. |
 | `public/admin-katalog.js` | Produk, varian, stok, foto. |
 | `public/admin-seksi.js` | Isi halaman depan dan Tentang Kami. |
 | `public/auth.js` | Masuk lewat tautan email. |
