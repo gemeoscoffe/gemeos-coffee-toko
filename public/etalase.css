@@ -231,9 +231,15 @@ h3 { font-size: 20px; line-height: 1.25; letter-spacing: -0.01em; }
   display: block;
 }
 
-/* Tirai gelap di atas rekaman. Bukan selera: tulisan putih di atas video yang
-   isinya berubah tiap detik akan terbaca di satu frame dan hilang di frame
-   berikutnya. Lebih pekat di kiri, tempat tulisannya berada. */
+/* Tirai gelap di atas rekaman, dan menakarnya adalah seluruh pekerjaannya.
+   Versi pertama 0,88 di kiri dan masih 0,34 di kanan -- cukup untuk membuat
+   tulisan terbaca, dan cukup juga untuk membuat videonya tidak kelihatan sama
+   sekali, yang meniadakan alasan memasang video.
+   
+   Sekarang pekatnya hanya di pita kiri tempat tulisan berdiri, dan habis
+   sebelum setengah lebar. Sisi kanan rekaman lewat apa adanya. Kontras yang
+   hilang karena itu diganti bayangan pada tulisannya sendiri, yang menempel
+   pada hurufnya dan tidak menutupi apa pun di sekitarnya. */
 .hero-bervideo::after {
   content: "";
   position: absolute;
@@ -242,8 +248,19 @@ h3 { font-size: 20px; line-height: 1.25; letter-spacing: -0.01em; }
   pointer-events: none;
   background:
     linear-gradient(to right,
-      rgba(30, 19, 9, 0.88) 0%, rgba(30, 19, 9, 0.70) 38%, rgba(30, 19, 9, 0.34) 100%),
-    linear-gradient(to top, rgba(30, 19, 9, 0.52), transparent 52%);
+      rgba(30, 19, 9, 0.74) 0%,
+      rgba(30, 19, 9, 0.44) 26%,
+      rgba(30, 19, 9, 0.12) 52%,
+      rgba(30, 19, 9, 0) 72%),
+    linear-gradient(to top, rgba(30, 19, 9, 0.34), transparent 42%);
+}
+
+/* Bayangan, bukan garis luar: rekaman di belakangnya berubah tiap frame, dan
+   yang menjaga huruf tetap terbaca adalah jarak gelap tepat di belakangnya. */
+.hero-bervideo .hero-teks h1,
+.hero-bervideo .hero-teks p,
+.hero-bervideo .hero-teks .plat {
+  text-shadow: 0 1px 18px rgba(20, 12, 5, 0.72), 0 1px 3px rgba(20, 12, 5, 0.6);
 }
 
 .hero .wrap {
