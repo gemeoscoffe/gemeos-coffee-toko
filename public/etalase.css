@@ -553,3 +553,167 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
    diambil dari sini alih-alih dari padding bagian beranda yang jauh lebih besar. */
 .produk-atas + section, .produk-atas ~ section { padding: 40px 0; border-top: 1px solid var(--garis); }
 .produk-atas ~ section h2 { margin-bottom: 20px; }
+
+/* ===========================================================================
+   Halaman depan dan Tentang Kami
+
+   Isinya datang dari `web_seksi` dan ditulis pemiliknya, jadi panjangnya tidak
+   bisa diandaikan: satu kalimat hari ini, empat paragraf bulan depan. Semua
+   yang di bawah ini tumbuh mengikuti isinya dan tidak pernah memaksa tinggi
+   tetap -- kotak setinggi 300px yang isinya satu baris terlihat seperti gambar
+   yang gagal dimuat.
+   =========================================================================== */
+
+.bar nav a[aria-current="page"] { color: var(--tinta); }
+.bar nav a[aria-current="page"]::after {
+  content: "";
+  display: block;
+  height: 2px;
+  margin-top: 4px;
+  background: var(--amber);
+}
+
+/* Tautan "Semua produk" di kepala bagian, sejajar judulnya. */
+.kepala-bagian .lanjut-bagian {
+  font-family: var(--data);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--kabut);
+  white-space: nowrap;
+}
+.kepala-bagian .lanjut-bagian:hover { color: var(--tinta); text-decoration: underline; text-underline-offset: 4px; }
+
+/* --- Cerita: foto di kiri, tulisan di kanan ------------------------------- */
+
+.cerita {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+  align-items: center;
+  padding: 64px 0;
+  border-top: 1px solid var(--garis);
+}
+
+.cerita-foto { border-radius: 3px; overflow: hidden; background: var(--naik); }
+.cerita-foto img { width: 100%; height: 100%; object-fit: cover; }
+
+.cerita-teks { display: flex; flex-direction: column; align-items: start; gap: 16px; }
+.cerita-teks h2 { margin: 0; }
+.cerita-teks .tulisan p:last-child { margin-bottom: 0; }
+
+/* Tanpa foto, tulisannya tidak perlu setengah halaman kosong di sebelahnya. */
+.cerita:not(:has(.cerita-foto)) { grid-template-columns: 1fr; max-width: 68ch; }
+
+@media (max-width: 900px) {
+  .cerita { grid-template-columns: 1fr; gap: 28px; padding: 44px 0; }
+}
+
+/* --- Alasan berfoto ------------------------------------------------------- */
+
+.alasan {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 32px;
+  padding: 64px 0;
+  border-top: 1px solid var(--garis);
+}
+
+.alasan article { display: flex; flex-direction: column; align-items: start; gap: 12px; }
+.alasan h3 { margin: 0; font-size: 18px; }
+.alasan p { margin: 0; font-size: 15px; color: var(--kabut); }
+
+.alasan-foto {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--naik);
+}
+.alasan-foto img { width: 100%; height: 100%; object-fit: cover; }
+.alasan-foto .biji { width: 100%; height: 100%; }
+
+/* --- Testimoni ------------------------------------------------------------ */
+
+.testimoni {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.testimoni figure {
+  margin: 0;
+  padding: 28px;
+  background: var(--kartu);
+  border: 1px solid var(--garis);
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.testimoni blockquote {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.55;
+}
+/* Kutipannya diketik pemilik tanpa tanda petik; tanda petiknya dari gaya, jadi
+   bentuknya selalu sama dari satu kutipan ke kutipan lain. */
+.testimoni blockquote::before { content: "\201C"; }
+.testimoni blockquote::after  { content: "\201D"; }
+
+.testimoni figcaption { font-size: 14px; color: var(--kabut); }
+.testimoni figcaption .plat { margin-left: 6px; }
+
+/* --- Lokasi --------------------------------------------------------------- */
+
+.lokasi {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.lokasi article {
+  padding: 28px;
+  background: var(--kartu);
+  border: 1px solid var(--garis);
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.lokasi h3 { margin: 0; font-size: 19px; }
+.lokasi p { margin: 0; font-size: 15px; color: var(--kabut); white-space: pre-line; }
+.lokasi .aksi { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+
+/* --- Halaman Tentang Kami ------------------------------------------------- */
+
+.tentang-kepala {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 18px;
+  padding: 64px 0 8px;
+  max-width: 68ch;
+}
+.tentang-kepala h1 { margin: 0; }
+
+.tentang-foto {
+  max-width: none;
+  width: 100%;
+  margin-top: 22px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--naik);
+}
+.tentang-foto img { width: 100%; height: auto; }
+
+/* Bagian pertama sesudah kepala tidak perlu garis lagi -- kepalanya sudah jadi
+   pembatasnya sendiri. */
+.tentang-kepala + .cerita { border-top: none; padding-top: 40px; }
+
+/* Bagian berurutan diselang-seling supaya fotonya tidak berbaris rapi di satu
+   sisi seperti daftar, melainkan terbaca seperti tulisan yang mengalir. */
+.tentang-kepala ~ .cerita:nth-of-type(even) .cerita-foto { order: 2; }

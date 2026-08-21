@@ -47,23 +47,67 @@ Supabase yang sama, dan pesanan yang dibayar akan ditulis ke pembukuan di sana.
 Rancangan lengkap, skema, dan urutan kerjanya ada di `TOKO.md` di repo v2.
 Migrasi database juga tinggal di sana, mengikuti urutan nomor yang sudah ada.
 
+## Halaman yang dibangun
+
+| Alamat | Isi |
+|---|---|
+| `/` | Halaman depan: hero, katalog ringkas, cerita, alasan, testimoni, lokasi. |
+| `/shop/` | Katalog lengkap dengan saringan kategori. |
+| `/tentang/` | Tentang Kami. |
+| `/kategori/<slug>/` | Katalog yang disaring satu kategori. |
+| `/produk/<slug>/` | Satu produk: foto, ukuran, harga, keterangan. |
+| `/admin` | Halaman kelola. Tidak dibangun dari data, dan `noindex`. |
+
+Menunya Home, Shop, About Us. Halaman kategori dan halaman produk ikut menyala
+di **Shop** — pengunjung yang sedang menyaring kategori masih berada di katalog,
+dan menu yang tidak menyorot apa pun membuat halaman terasa tersesat.
+
+## Yang bisa diubah tanpa menyentuh kode
+
+Katalog ada di `web_produk`, `web_varian`, `web_foto`. Tulisan dan foto halaman
+depan serta halaman Tentang Kami ada di `web_seksi`, satu baris per bagian:
+
+| `halaman/blok` | Bagian |
+|---|---|
+| `home/hero` | Judul besar, kalimat pembuka, foto besar, satu tombol. |
+| `home/cerita` | Perkenalan pendek dengan foto dan tombol ke `/tentang/`. |
+| `home/alasan` | Kartu-kartu alasan. Tanpa foto tampil sebagai pita teks. |
+| `home/testimoni` | Kutipan pembeli, nama, kota. |
+| `home/lokasi` | Alamat, tautan Google Maps dan WhatsApp. |
+| `tentang/hero` | Kepala halaman Tentang Kami. |
+| `tentang/isi` | Bagian bertumpuk, fotonya berselang-seling kiri-kanan. |
+
+Semuanya disunting di `/admin` bagian **Halaman Website**. Bagian yang belum
+diisi disimpan `aktif = false` dan tidak digambar sama sekali: judul tanpa isi
+terlihat seperti halaman yang rusak, sedangkan halaman yang lebih pendek hanya
+terlihat ringkas — dan itu keadaan yang jujur selama isinya memang belum ditulis.
+
+Yang tidak diisi otomatis juga disengaja. Cerita, testimoni, alamat, dan tahun
+berdiri adalah fakta tentang usahanya; menebaknya berarti menaruh klaim palsu
+justru di halaman yang dibuka orang untuk memutuskan apakah toko ini bisa
+dipercaya.
+
 ## Isi
 
 | Berkas | Isi |
 |---|---|
-| `public/index.html` | Etalase. Sementara masih halaman "segera hadir". |
-| `public/admin.html` | Halaman kelola: produk, varian, stok, foto. |
-| `public/admin-katalog.js` | Isi halaman kelola. |
-| `public/auth.js` | Masuk dengan kode lewat email. |
+| `build.js` | Menarik katalog dari Supabase dan menulis seluruh halaman ke `dist/`. |
+| `public/render.js` | Perakit HTML. Dipakai `build.js` di Node dan browser sekaligus. |
+| `public/etalase.js` | Pilihan ukuran dan galeri foto di halaman produk. |
+| `public/etalase.css` | Gaya etalase. |
+| `public/admin.html` | Halaman kelola. |
+| `public/admin-katalog.js` | Produk, varian, stok, foto. |
+| `public/admin-seksi.js` | Isi halaman depan dan Tentang Kami. |
+| `public/auth.js` | Masuk lewat tautan email. |
 | `public/lib.js` | Pembantu PostgREST dan pemformatan. |
 | `public/config.js` | URL dan kunci publishable Supabase. |
-| `public/styles.css` | Seluruh gaya kedua halaman. |
+| `public/styles.css` | Gaya halaman kelola. |
 
 ## Siapa yang boleh mengelola
 
 Bukan halaman `/admin` yang menjaganya, melainkan kebijakan RLS di database:
-setiap penulisan ke `web_produk`, `web_varian`, `web_foto`, dan bucket `produk`
-menuntut `is_app_user()`. Daftar orangnya tabel `app_users`, bukan alamat yang
+setiap penulisan ke `web_produk`, `web_varian`, `web_foto`, `web_seksi`, dan
+bucket `produk` menuntut `is_app_user()`. Daftar orangnya tabel `app_users`, bukan alamat yang
 dipatok di kode. Menambah orang cukup satu baris:
 
 ```sql
@@ -81,11 +125,19 @@ anonim sama sekali.
 
 ## Menjalankan di lokal
 
-Tidak ada build step. Sajikan `public/` lewat server statis apa saja:
+Etalasenya dibangun dulu, baru disajikan — `public/` saja tidak cukup, karena
+halaman produk dan halaman kategori baru ada setelah `build.js` menulisnya:
 
 ```bash
-npx serve public
+node build.js && npx serve dist
 ```
 
-Membuka berkasnya langsung lewat `file://` tidak bisa: login Supabase butuh
-origin yang sebenarnya.
+Halaman `/admin` tidak dibangun dari data, jadi untuk menyuntingnya saja
+`npx serve public` sudah cukup. Membuka berkasnya langsung lewat `file://`
+tidak bisa: login Supabase butuh origin yang sebenarnya.
+
+Tesnya tidak butuh jaringan maupun database:
+
+```bash
+node --test tests/*.test.js
+```

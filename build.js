@@ -68,14 +68,15 @@ async function ambil(tabel, kueri) {
 }
 
 async function ambilKatalog() {
-  const [produk, varian, foto] = await Promise.all([
+  const [produk, varian, foto, seksi] = await Promise.all([
     ambil('web_produk', 'select=*&order=urutan,nama'),
     ambil('web_varian', 'select=*&order=produk_id,urutan,label_ukuran'),
-    ambil('web_foto', 'select=*&order=produk_id,urutan')
+    ambil('web_foto', 'select=*&order=produk_id,urutan'),
+    ambil('web_seksi', 'select=*&order=halaman,blok,urutan')
   ]);
   // Kunci publishable hanya melihat baris aktif -- itu kebijakan RLS, bukan
   // penyaringan di sini. Yang disembunyikan pemilik tidak pernah sampai.
-  return { produk, varian, foto, basisFoto: BASIS_FOTO };
+  return { produk, varian, foto, seksi, basisFoto: BASIS_FOTO };
 }
 
 // ---------------------------------------------------------------------------
@@ -111,7 +112,8 @@ function kaki() {
           '</section>' +
           '<section>' +
             '<span class="plat">Belanja</span>' +
-            '<a href="/">Semua produk</a>' +
+            '<a href="/shop/">Semua produk</a>' +
+            '<a href="/tentang/">Tentang kami</a>' +
             '<a href="' + RENDER.MARKETPLACE + '" target="_blank" rel="noopener">TikTok Shop</a>' +
           '</section>' +
           '<section>' +
@@ -125,6 +127,17 @@ function kaki() {
         '</div>' +
       '</div>' +
     '</footer>';
+}
+
+// Halaman kategori tetap menandai "Shop": pengunjung yang sedang menyaring
+// kategori masih berada di katalog, dan menu yang tidak menyorot apa pun membuat
+// halaman itu terasa seperti tersesat dari situsnya.
+function tautanNav(alamat, label, sekarang) {
+  const aktif = alamat === '/'
+    ? sekarang === '/'
+    : sekarang.indexOf(alamat) === 0 ||
+      (alamat === '/shop/' && (sekarang.indexOf('/kategori/') === 0 || sekarang.indexOf('/produk/') === 0));
+  return '<a href="' + alamat + '"' + (aktif ? ' aria-current="page"' : '') + '>' + label + '</a>';
 }
 
 function halaman(opsi) {
@@ -154,9 +167,10 @@ function halaman(opsi) {
     '<header class="bar"><div class="wrap">' +
       '<a class="merek" href="/">Gemeos Coffee</a>' +
       '<nav>' +
-        '<a href="/">Beranda</a>' +
-        '<a href="/#katalog">Katalog</a>' +
-        '<a href="' + RENDER.MARKETPLACE + '" target="_blank" rel="noopener">Toko TikTok Shop</a>' +
+        tautanNav('/', 'Home', opsi.alamat) +
+        tautanNav('/shop/', 'Shop', opsi.alamat) +
+        tautanNav('/tentang/', 'About Us', opsi.alamat) +
+        '<a href="' + RENDER.MARKETPLACE + '" target="_blank" rel="noopener">TikTok Shop</a>' +
       '</nav>' +
     '</div></header>\n' +
     '<main>' + opsi.isi + '</main>\n' +
@@ -234,7 +248,7 @@ function jsonldToko(data) {
 async function bangun() {
   const data = await ambilKatalog();
   console.log('Katalog: ' + data.produk.length + ' produk, ' + data.varian.length +
-              ' varian, ' + data.foto.length + ' foto');
+              ' varian, ' + data.foto.length + ' foto, ' + (data.seksi || []).length + ' seksi');
 
   fs.rmSync(KELUAR, { recursive: true, force: true });
   salinFolder(PUBLIK, KELUAR);
@@ -247,17 +261,53 @@ async function bangun() {
     return f ? RENDER.urlFoto(data.basisFoto, f, 800) : null;
   };
 
+  // Foto hero halaman depan dipilih pemilik; kalau belum ada, kartu berbagi
+  // memakai foto produk pertama seperti sebelumnya.
+  const hero = RENDER.seksiSatu(data, 'home', 'hero');
+  const fotoHero = hero && hero.foto_path
+    ? RENDER.urlFoto(data.basisFoto, { path: hero.foto_path, lebar_tersedia: hero.foto_lebar || [] }, 800)
+    : (data.produk.length ? fotoPertama(data.produk[0]) : null);
+
   // Beranda
   tulis('/', halaman({
     alamat: '/',
     judul: 'Gemeos Coffee — Kopi Arabika & Robusta Gunung Puntang',
     deskripsi: 'Roastery kopi Arabika dan Robusta dari Gunung Puntang, Jawa Barat. ' +
                'Bubuk murni 100%, pilih gilingan sesuai alat seduhmu, kirim ke seluruh Indonesia.',
-    isi: RENDER.beranda(data, null),
-    gambar: data.produk.length ? fotoPertama(data.produk[0]) : null,
+    isi: RENDER.beranda(data),
+    gambar: fotoHero,
     jsonld: jsonldToko(data)
   }));
   alamat.push({ url: '/', prioritas: '1.0' });
+
+  // Katalog. Sejak halaman depan berubah jadi halaman perkenalan, katalog
+  // lengkapnya punya alamat sendiri -- alamat yang bisa dikirim ke pembeli yang
+  // memang sudah mau melihat barangnya, bukan ceritanya.
+  tulis('/shop/', halaman({
+    alamat: '/shop/',
+    judul: 'Semua Kopi — Gemeos Coffee',
+    deskripsi: 'Seluruh kopi yang kami sangrai: ' +
+               data.produk.map(function (p) { return p.nama; }).join(', ') + '.',
+    isi: RENDER.shop(data, null),
+    gambar: data.produk.length ? fotoPertama(data.produk[0]) : null
+  }));
+  alamat.push({ url: '/shop/', prioritas: '0.9' });
+
+  // Tentang Kami
+  const tentangKepala = RENDER.seksiSatu(data, 'tentang', 'hero');
+  tulis('/tentang/', halaman({
+    alamat: '/tentang/',
+    judul: ((tentangKepala && tentangKepala.judul) || 'Tentang Kami') + ' — Gemeos Coffee',
+    deskripsi: (tentangKepala && tentangKepala.teks)
+      ? String(tentangKepala.teks).replace(/\s+/g, ' ').slice(0, 155)
+      : 'Roastery kecil yang menyangrai per pesanan, dari lereng Gunung Puntang, Jawa Barat.',
+    isi: RENDER.tentang(data),
+    gambar: tentangKepala && tentangKepala.foto_path
+      ? RENDER.urlFoto(data.basisFoto,
+          { path: tentangKepala.foto_path, lebar_tersedia: tentangKepala.foto_lebar || [] }, 800)
+      : fotoHero
+  }));
+  alamat.push({ url: '/tentang/', prioritas: '0.5' });
 
   // Kategori
   for (const k of RENDER.kategoriDaftar(data)) {
@@ -268,7 +318,7 @@ async function bangun() {
       judul: 'Kopi ' + k + ' — Gemeos Coffee',
       deskripsi: 'Pilihan kopi ' + k + ' dari Gemeos Coffee: ' +
                  isi.map(function (p) { return p.nama; }).join(', ') + '.',
-      isi: RENDER.beranda(data, k),
+      isi: RENDER.shop(data, k),
       gambar: isi.length ? fotoPertama(isi[0]) : null
     }));
     alamat.push({ url: '/kategori/' + s + '/', prioritas: '0.6' });

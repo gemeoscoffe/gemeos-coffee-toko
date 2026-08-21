@@ -1,0 +1,408 @@
+/**
+ * Isi halaman depan dan halaman Tentang Kami. Bagian kedua dari /admin.
+ *
+ * Katalog punya bentuk yang tegas -- produk, varian, foto -- dan `admin-katalog.js`
+ * mengurusnya. Yang di sini bentuknya justru longgar: sepotong teks, mungkin
+ * sebuah foto, mungkin sebuah tombol, diulang beberapa kali. Semuanya satu tabel
+ * (`web_seksi`) dan satu halaman ini, karena membuat satu tabel dan satu layar
+ * per bagian halaman berarti menambah keduanya tiap kali halaman depan tumbuh
+ * satu baris.
+ *
+ * Yang menentukan bentuk tiap bagian adalah `SEKSI_BENTUK` di bawah: kolom mana
+ * yang muncul, apa namanya di layar, dan apakah bagian itu boleh punya lebih
+ * dari satu baris. Menambah bagian baru ke halaman depan berarti menambah satu
+ * entri di sana dan satu fungsi gambar di `render.js` -- tidak ada tabel baru,
+ * tidak ada migrasi.
+ *
+ * Semua kolom tersimpan sendiri saat kotaknya ditinggalkan, sama seperti tabel
+ * varian. Tidak ada tombol Simpan yang bisa terlupa.
+ */
+
+let SEKSI = [];
+
+const SEKSI_BUCKET = 'produk';
+
+// Bagian yang belum diisi tetap ada barisnya di sini, tapi `aktif = false`, dan
+// etalase tidak menggambar yang tidak aktif. Jadi halaman depan tidak pernah
+// menampilkan judul tanpa isi hanya karena barisnya sudah dibuat.
+const SEKSI_BENTUK = {
+  'home/hero': {
+    nama: 'Hero halaman depan',
+    catatan: 'Yang pertama dilihat orang yang membuka gemeoscoffee.com. Fotonya tampil besar di sebelah kanan tulisan.',
+    banyak: false,
+    kolom: [
+      { k: 'subjudul', label: 'Baris kecil di atas judul', ph: 'Roastery · Gunung Puntang, Jawa Barat' },
+      { k: 'judul', label: 'Judul besar', ph: 'Kopi yang baru disangrai, bukan yang lama menunggu' },
+      { k: 'teks', label: 'Kalimat pembuka', panjang: true, ph: 'Satu-dua kalimat tentang kopinya.' },
+      { k: 'tombol_label', label: 'Teks tombol', ph: 'Lihat katalog', kecil: true },
+      { k: 'tombol_url', label: 'Tujuan tombol', ph: '/shop/', kecil: true }
+    ],
+    foto: 'Foto hero'
+  },
+
+  'home/cerita': {
+    nama: 'Cerita singkat',
+    catatan: 'Perkenalan pendek di halaman depan, dengan tombol ke halaman Tentang Kami. Tulis yang benar-benar terjadi &mdash; ini bagian yang dibaca orang sebelum memutuskan percaya atau tidak.',
+    banyak: false,
+    kolom: [
+      { k: 'subjudul', label: 'Label kecil', ph: 'Tentang kami', kecil: true },
+      { k: 'judul', label: 'Judul', ph: 'Mulai dari satu drum sangrai' },
+      { k: 'teks', label: 'Isi cerita', panjang: true, ph: 'Pisahkan paragraf dengan satu baris kosong.' },
+      { k: 'tombol_label', label: 'Teks tombol', ph: 'Selengkapnya', kecil: true },
+      { k: 'tombol_url', label: 'Tujuan tombol', ph: '/tentang/', kecil: true }
+    ],
+    foto: 'Foto pendamping'
+  },
+
+  'home/alasan': {
+    nama: 'Kenapa beli langsung di sini',
+    catatan: 'Kartu-kartu alasan. Foto boleh dikosongkan &mdash; kalau satu pun belum berfoto, semuanya tampil sebagai pita teks, bukan kartu bergambar setengah kosong.',
+    banyak: true,
+    kolom: [
+      { k: 'judul', label: 'Judul kartu', ph: 'Harga tanpa potongan marketplace' },
+      { k: 'teks', label: 'Satu-dua kalimat', panjang: true, ph: '' },
+      { k: 'tombol_label', label: 'Teks tombol (opsional)', ph: '', kecil: true },
+      { k: 'tombol_url', label: 'Tujuan tombol', ph: '/shop/', kecil: true }
+    ],
+    foto: 'Foto kartu'
+  },
+
+  'home/testimoni': {
+    nama: 'Testimoni pembeli',
+    catatan: 'Kutipan pembeli sungguhan &mdash; boleh disalin dari ulasan Shopee, TikTok atau chat WhatsApp. Tanda petiknya dipasang otomatis, tidak perlu diketik.',
+    banyak: true,
+    kolom: [
+      { k: 'teks', label: 'Kutipannya', panjang: true, ph: 'Kopinya wangi, tidak pahit berlebihan...' },
+      { k: 'judul', label: 'Nama pembeli', ph: 'Rina' },
+      { k: 'subjudul', label: 'Kota atau keterangan', ph: 'Bandung · Shopee', kecil: true }
+    ]
+  },
+
+  'home/lokasi': {
+    nama: 'Lokasi dan kontak',
+    catatan: 'Alamat yang boleh dilihat umum. Tautan WhatsApp bentuknya <code>https://wa.me/62812xxxxxxx</code> &mdash; nomornya diawali 62, tanpa tanda plus dan tanpa nol di depan.',
+    banyak: true,
+    kolom: [
+      { k: 'judul', label: 'Nama tempat', ph: 'Roastery Gemeos Coffee' },
+      { k: 'teks', label: 'Alamat', panjang: true, ph: '' },
+      { k: 'tombol_label', label: 'Tombol 1', ph: 'Google Maps', kecil: true },
+      { k: 'tombol_url', label: 'Tautan tombol 1', ph: 'https://maps.app.goo.gl/...', kecil: true },
+      { k: 'tombol2_label', label: 'Tombol 2', ph: 'WhatsApp', kecil: true },
+      { k: 'tombol2_url', label: 'Tautan tombol 2', ph: 'https://wa.me/62...', kecil: true }
+    ]
+  },
+
+  'tentang/hero': {
+    nama: 'Kepala halaman Tentang Kami',
+    catatan: 'Judul dan paragraf pembuka halaman /tentang/. Selama seluruh halaman ini kosong, /tentang/ hanya menampilkan pemberitahuan bahwa halamannya sedang ditulis.',
+    banyak: false,
+    kolom: [
+      { k: 'subjudul', label: 'Label kecil', ph: 'Tentang Kami', kecil: true },
+      { k: 'judul', label: 'Judul halaman', ph: '' },
+      { k: 'teks', label: 'Paragraf pembuka', panjang: true, ph: '' }
+    ],
+    foto: 'Foto lebar di bawah judul'
+  },
+
+  'tentang/isi': {
+    nama: 'Bagian Tentang Kami',
+    catatan: 'Bagian bertumpuk di bawah kepala halaman. Foto berselang-seling kiri-kanan dengan sendirinya.',
+    banyak: true,
+    kolom: [
+      { k: 'judul', label: 'Judul bagian', ph: '' },
+      { k: 'teks', label: 'Isi', panjang: true, ph: 'Pisahkan paragraf dengan satu baris kosong.' },
+      { k: 'tombol_label', label: 'Teks tombol (opsional)', ph: '', kecil: true },
+      { k: 'tombol_url', label: 'Tujuan tombol', ph: '', kecil: true }
+    ],
+    foto: 'Foto bagian'
+  }
+};
+
+// Urutan tampil di layar sengaja mengikuti urutan bagian itu di halaman aslinya,
+// bukan abjad: yang sedang disunting jadi mudah dicocokkan dengan yang dilihat
+// di tab sebelah.
+const SEKSI_URUT = [
+  'home/hero', 'home/cerita', 'home/alasan', 'home/testimoni', 'home/lokasi',
+  'tentang/hero', 'tentang/isi'
+];
+
+function seksiKunci(s) { return s.halaman + '/' + s.blok; }
+
+function seksiBarisDari(kunci) {
+  return SEKSI.filter(function(s) { return seksiKunci(s) === kunci; })
+              .sort(function(a, b) { return a.urutan - b.urutan; });
+}
+
+function seksiUrlFoto(s, lebarDiminta) {
+  const lebar = s.foto_lebar || [];
+  const dasar = SUPABASE_URL + '/storage/v1/object/public/' + SEKSI_BUCKET + '/' + s.foto_path;
+  if (!lebar.length) return dasar;
+  const urut = lebar.slice().sort(function(a, b) { return a - b; });
+  const pas = urut.find(function(w) { return w >= (lebarDiminta || 0); }) || urut[urut.length - 1];
+  return dasar + '-' + pas + '.webp';
+}
+
+function seksiBerkasFoto(s) {
+  const lebar = s.foto_lebar || [];
+  if (!lebar.length) return s.foto_path ? [s.foto_path] : [];
+  return lebar.map(function(w) { return s.foto_path + '-' + w + '.webp'; });
+}
+
+// ---------------------------------------------------------------------------
+// Muat dan gambar
+// ---------------------------------------------------------------------------
+
+async function loadSeksiPage() {
+  const el = document.getElementById('toko-seksi');
+  if (!el) return;
+  el.innerHTML = '<p class="muted">Memuat...</p>';
+  try {
+    SEKSI = await sbSelect('web_seksi', 'select=*&order=halaman,blok,urutan');
+    renderSeksi();
+  } catch (err) {
+    el.innerHTML = '<p class="muted">Gagal memuat: ' + esc(err.message) + '</p>';
+  }
+}
+
+function renderSeksiKotak(s, kolom) {
+  const nilai = s[kolom.k] === null || s[kolom.k] === undefined ? '' : s[kolom.k];
+  const atribut = 'class="seksi-isi" data-id="' + s.id + '" data-kolom="' + kolom.k + '" ' +
+    'placeholder="' + esc(kolom.ph || '') + '"';
+
+  return '<div style="' + (kolom.kecil ? 'width:230px' : 'flex:1;min-width:260px') + '">' +
+    '<label>' + kolom.label + '</label>' +
+    (kolom.panjang
+      ? '<textarea ' + atribut + ' rows="4">' + esc(nilai) + '</textarea>'
+      : '<input ' + atribut + ' value="' + esc(nilai) + '">') +
+  '</div>';
+}
+
+function renderSeksiFoto(s, bentuk) {
+  if (!bentuk.foto) return '';
+
+  return '<div class="row" style="align-items:flex-end">' +
+      '<div><label>' + bentuk.foto + '</label>' +
+        '<input type="file" class="seksi-foto-file" data-id="' + s.id + '" accept="image/*"></div>' +
+      (s.foto_path
+        ? '<div class="seksi-pratinjau">' +
+            '<img src="' + esc(seksiUrlFoto(s, 400)) + '" alt="" loading="lazy">' +
+            '<button class="btn-secondary seksi-foto-hapus" data-id="' + s.id + '">Hapus Foto</button>' +
+          '</div>'
+        : '<p class="muted" style="font-size:13px;margin:0 0 6px">Belum ada foto.</p>') +
+    '</div>' +
+    '<p class="seksi-status" data-id="' + s.id + '" style="margin:6px 0 0;font-size:13px"></p>';
+}
+
+function renderSeksiBaris(s, bentuk, nomor) {
+  return '<div class="seksi-baris">' +
+    '<div class="seksi-kepala">' +
+      '<span class="plat-admin">' + (bentuk.banyak ? '#' + nomor : 'Bagian') + '</span>' +
+      '<label class="toko-switch" title="Tampilkan bagian ini di website">' +
+        '<input type="checkbox" class="seksi-aktif" data-id="' + s.id + '"' + (s.aktif ? ' checked' : '') + '>' +
+      '</label>' +
+      '<span class="muted" style="font-size:12px">' + (s.aktif ? 'Tampil' : 'Disembunyikan') + '</span>' +
+      (bentuk.banyak
+        ? '<div style="margin-left:auto;display:flex;gap:8px;align-items:center">' +
+            '<label style="margin:0">Urutan</label>' +
+            '<input class="seksi-isi" type="number" data-id="' + s.id + '" data-kolom="urutan" ' +
+              'value="' + Number(s.urutan) + '" style="width:74px">' +
+            '<button class="btn-secondary seksi-hapus" data-id="' + s.id + '">Hapus</button>' +
+          '</div>'
+        : '') +
+    '</div>' +
+    '<div class="row">' + bentuk.kolom.map(function(k) { return renderSeksiKotak(s, k); }).join('') + '</div>' +
+    renderSeksiFoto(s, bentuk) +
+  '</div>';
+}
+
+function renderSeksi() {
+  const el = document.getElementById('toko-seksi');
+
+  el.innerHTML = SEKSI_URUT.map(function(kunci) {
+    const bentuk = SEKSI_BENTUK[kunci];
+    const baris = seksiBarisDari(kunci);
+    const pisah = kunci.split('/');
+
+    return '<div class="card">' +
+      '<h3>' + bentuk.nama + '</h3>' +
+      '<p class="card-note">' + bentuk.catatan +
+        ' <span class="muted">Tampil di <code>' +
+        (pisah[0] === 'home' ? '/' : '/tentang/') + '</code>.</span></p>' +
+      (baris.length
+        ? baris.map(function(s, i) { return renderSeksiBaris(s, bentuk, i + 1); }).join('')
+        : '<p class="muted">Belum ada isinya.</p>') +
+      (bentuk.banyak
+        ? '<button class="btn-secondary seksi-tambah" data-kunci="' + kunci + '" style="margin-top:10px">' +
+            'Tambah ' + bentuk.nama + '</button>'
+        : '') +
+    '</div>';
+  }).join('');
+
+  wireSeksi();
+}
+
+function wireSeksi() {
+  const el = document.getElementById('toko-seksi');
+
+  el.querySelectorAll('.seksi-isi').forEach(function(i) {
+    i.addEventListener('change', function() {
+      setSeksiKolom(Number(i.dataset.id), i.dataset.kolom, i.value);
+    });
+  });
+  el.querySelectorAll('.seksi-aktif').forEach(function(c) {
+    c.addEventListener('change', function() { setSeksiAktif(Number(c.dataset.id), c.checked); });
+  });
+  el.querySelectorAll('.seksi-hapus').forEach(function(b) {
+    b.addEventListener('click', function() { hapusSeksi(Number(b.dataset.id)); });
+  });
+  el.querySelectorAll('.seksi-tambah').forEach(function(b) {
+    b.addEventListener('click', function() { tambahSeksi(b.dataset.kunci); });
+  });
+  el.querySelectorAll('.seksi-foto-file').forEach(function(i) {
+    i.addEventListener('change', function() { unggahSeksiFoto(Number(i.dataset.id), i); });
+  });
+  el.querySelectorAll('.seksi-foto-hapus').forEach(function(b) {
+    b.addEventListener('click', function() { hapusSeksiFoto(Number(b.dataset.id)); });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Simpan
+// ---------------------------------------------------------------------------
+
+// Teks kosong disimpan null, bukan string kosong. Etalase memutuskan menggambar
+// atau tidak dengan memeriksa apakah kolomnya berisi; string kosong lolos
+// pemeriksaan itu dan menghasilkan judul setinggi satu baris tanpa satu huruf
+// pun di dalamnya.
+async function setSeksiKolom(id, kolom, teks) {
+  const s = SEKSI.find(function(x) { return x.id === id; });
+  const bersih = String(teks).trim();
+
+  let nilai;
+  if (kolom === 'urutan') {
+    nilai = Math.max(0, Math.floor(Number(bersih) || 0));
+  } else {
+    nilai = bersih === '' ? null : bersih;
+  }
+
+  const sekarang = s && (s[kolom] === null || s[kolom] === undefined) ? '' : String(s ? s[kolom] : '');
+  if (sekarang === String(nilai === null ? '' : nilai)) return;
+
+  const isi = {};
+  isi[kolom] = nilai;
+
+  try {
+    await sbWrite('PATCH', 'web_seksi', 'id=eq.' + id, isi);
+    if (s) s[kolom] = nilai;
+    if (kolom === 'urutan') renderSeksi();
+  } catch (err) {
+    alert('Gagal menyimpan: ' + err.message);
+    await loadSeksiPage();
+  }
+}
+
+async function setSeksiAktif(id, aktif) {
+  try {
+    await sbWrite('PATCH', 'web_seksi', 'id=eq.' + id, { aktif: aktif });
+    const s = SEKSI.find(function(x) { return x.id === id; });
+    if (s) s.aktif = aktif;
+    renderSeksi();
+  } catch (err) {
+    alert('Gagal mengubah: ' + err.message);
+    await loadSeksiPage();
+  }
+}
+
+async function tambahSeksi(kunci) {
+  const pisah = kunci.split('/');
+  const baris = seksiBarisDari(kunci);
+  const urutan = baris.length ? Math.max.apply(null, baris.map(function(s) { return s.urutan; })) + 1 : 1;
+
+  try {
+    // Baris baru dibuat tersembunyi. Bagian kosong yang langsung tampil berarti
+    // website berubah sebelum ada yang mengetik apa pun ke dalamnya.
+    await sbWrite('POST', 'web_seksi', '', {
+      halaman: pisah[0], blok: pisah[1], urutan: urutan, aktif: false
+    });
+    await loadSeksiPage();
+  } catch (err) {
+    alert('Gagal menambah: ' + err.message);
+  }
+}
+
+async function hapusSeksi(id) {
+  const s = SEKSI.find(function(x) { return x.id === id; });
+  if (!s) return;
+  if (!confirm('Hapus bagian ini' + (s.judul ? ' ("' + s.judul + '")' : '') + '?')) return;
+
+  try {
+    for (const berkas of seksiBerkasFoto(s)) await hapusBerkasFoto(berkas);
+    await sbDelete('web_seksi', 'id=eq.' + id);
+    await loadSeksiPage();
+  } catch (err) {
+    alert('Gagal menghapus: ' + err.message);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Foto
+// ---------------------------------------------------------------------------
+
+// Sama seperti foto produk: dikecilkan di browser dulu, tiga ukuran, WebP. Foto
+// dari kamera HP bisa 4 MB dan 4000 piksel, dan mengirimnya apa adanya ke
+// pengunjung yang membuka lewat data seluler adalah ongkos yang tidak pernah
+// mereka minta.
+async function unggahSeksiFoto(id, input) {
+  const s = SEKSI.find(function(x) { return x.id === id; });
+  const file = (input.files || [])[0];
+  const status = document.querySelector('.seksi-status[data-id="' + id + '"]');
+  if (!s || !file) return;
+
+  if (file.size > 25 * 1024 * 1024) {
+    if (status) tokoStatus(status, false, 'Foto di atas 25 MB tidak diunggah.');
+    input.value = '';
+    return;
+  }
+
+  const lama = seksiBerkasFoto(s);
+  const dasar = 'seksi/' + id + '/' + Date.now();
+  const lebarJadi = [];
+
+  try {
+    for (const target of LEBAR_FOTO) {
+      if (status) { status.style.color = ''; status.textContent = 'Memproses ' + target + 'px...'; }
+      const hasil = await ubahUkuranFoto(file, target);
+      // Foto yang aslinya lebih kecil menghasilkan lebar yang sama untuk dua
+      // target; yang kedua tidak perlu diunggah lagi.
+      if (lebarJadi.indexOf(hasil.lebar) !== -1) continue;
+      await unggahBerkasFoto(dasar + '-' + hasil.lebar + '.webp', hasil.blob);
+      lebarJadi.push(hasil.lebar);
+    }
+
+    await sbWrite('PATCH', 'web_seksi', 'id=eq.' + id, { foto_path: dasar, foto_lebar: lebarJadi });
+
+    // Berkas lama dihapus setelah barisnya menunjuk ke yang baru, bukan sebelum.
+    // Urutan sebaliknya meninggalkan halaman yang menunjuk foto yang sudah tidak
+    // ada kalau penyimpanannya gagal di tengah jalan.
+    for (const berkas of lama) await hapusBerkasFoto(berkas);
+
+    input.value = '';
+    await loadSeksiPage();
+  } catch (err) {
+    if (status) tokoStatus(status, false, err.message);
+    input.value = '';
+  }
+}
+
+async function hapusSeksiFoto(id) {
+  const s = SEKSI.find(function(x) { return x.id === id; });
+  if (!s || !s.foto_path || !confirm('Hapus foto bagian ini?')) return;
+
+  try {
+    for (const berkas of seksiBerkasFoto(s)) await hapusBerkasFoto(berkas);
+    await sbWrite('PATCH', 'web_seksi', 'id=eq.' + id, { foto_path: null, foto_lebar: null });
+    await loadSeksiPage();
+  } catch (err) {
+    alert('Gagal menghapus foto: ' + err.message);
+  }
+}

@@ -123,6 +123,7 @@ async function authOnSignedIn(session) {
   document.getElementById('user-email').title = AUTH_EMAIL;
   authShowGate(false);
   loadTokoPage();
+  loadSeksiPage();
 }
 
 async function authSignOut() {

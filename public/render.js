@@ -94,7 +94,7 @@
 
   // `sizes` memberi tahu browser seberapa lebar gambar ini akan tampil, supaya
   // ia memilih berkas yang benar sebelum tata letaknya selesai dihitung.
-  function gambar(data, p, lebar, sizes) {
+  function gambarProduk(data, p, lebar, sizes) {
     const f = fotoDari(data, p.id)[0];
     if (!f) return '<div class="biji" style="--tone:' + warnaBiji(p.nama) + '"></div>';
 
@@ -134,7 +134,7 @@
         '<div class="foto">' +
           (habis ? '<span class="tanda habis">Habis</span>'
                  : diskon ? '<span class="tanda sale">Diskon</span>' : '') +
-          gambar(data, p, 400, '(max-width: 640px) 92vw, (max-width: 1100px) 46vw, 280px') +
+          gambarProduk(data, p, 400, '(max-width: 640px) 92vw, (max-width: 1100px) 46vw, 280px') +
         '</div>' +
         '<div class="isi">' +
           '<h3>' + esc(p.nama) + '</h3>' +
@@ -162,7 +162,7 @@
   // menyaring di browser: tiap kategori jadi alamat yang bisa dibagikan,
   // diindeks, dan dibuka tanpa JavaScript.
   function saringan(data, aktif) {
-    const semua = '<a href="/"' + (aktif ? '' : ' aria-current="page"') + '>Semua</a>';
+    const semua = '<a href="/shop/"' + (aktif ? '' : ' aria-current="page"') + '>Semua</a>';
     return '<nav class="saring">' + semua + kategoriDaftar(data).map(function (k) {
       return '<a href="/kategori/' + esc(slugKategori(k)) + '/"' +
         (aktif === k ? ' aria-current="page"' : '') + '>' + esc(k) + '</a>';
@@ -173,56 +173,280 @@
   // Halaman
   // -------------------------------------------------------------------------
 
-  function beranda(data, kategoriAktif) {
+  // -------------------------------------------------------------------------
+  // Isi yang ditulis pemilik
+  // -------------------------------------------------------------------------
+  //
+  // Halaman depan dan halaman "Tentang Kami" isinya fakta tentang usahanya --
+  // ceritanya, alamatnya, kata pembelinya -- bukan tentang programnya. Semuanya
+  // datang dari `web_seksi`, dan bagian yang belum diisi tidak digambar sama
+  // sekali. Kotak berisi judul tanpa isi lebih buruk daripada halaman yang lebih
+  // pendek: yang pertama terlihat rusak, yang kedua hanya terlihat ringkas.
+
+  function seksiDari(data, halaman, blok) {
+    return (data.seksi || [])
+      .filter(function (s) { return s.halaman === halaman && s.blok === blok; })
+      .sort(function (a, b) { return a.urutan - b.urutan; });
+  }
+
+  function seksiSatu(data, halaman, blok) {
+    return seksiDari(data, halaman, blok)[0] || null;
+  }
+
+  // `web_seksi` menyimpan fotonya di kolomnya sendiri, `web_foto` di barisnya
+  // sendiri. Dijadikan bentuk yang sama di sini supaya `urlFoto` dan
+  // `srcsetFoto` tidak perlu tahu bedanya.
+  function fotoSeksi(s) {
+    return s && s.foto_path ? { path: s.foto_path, lebar_tersedia: s.foto_lebar || [] } : null;
+  }
+
+  function gambarSeksi(data, s, lebar, sizes, alt) {
+    const f = fotoSeksi(s);
+    if (!f) return '';
+    const set = srcsetFoto(data.basisFoto, f);
+    return '<img src="' + esc(urlFoto(data.basisFoto, f, lebar)) + '"' +
+      (set ? ' srcset="' + esc(set) + '"' : '') +
+      (set && sizes ? ' sizes="' + esc(sizes) + '"' : '') +
+      ' alt="' + esc(alt || '') + '" loading="lazy" decoding="async">';
+  }
+
+  // Sebuah blok dianggap kosong kalau tidak ada satu pun kolom yang akan
+  // terlihat. Tombol tidak dihitung: tombol tanpa teks di sekitarnya bukan
+  // bagian halaman, cuma tombol yang menggantung.
+  function seksiTerisi(s) {
+    return !!(s && (s.judul || s.subjudul || s.teks || s.foto_path));
+  }
+
+  function tautanSeksi(url, label, kelas) {
+    if (!url || !label) return '';
+    return '<a class="tombol ' + (kelas || '') + '" href="' + esc(url) + '"' +
+      (/^https?:/.test(url) ? ' target="_blank" rel="noopener"' : '') +
+      '>' + esc(label) + '</a>';
+  }
+
+  function tombolSeksi(s, kelas) {
+    return s ? tautanSeksi(s.tombol_url, s.tombol_label, kelas) : '';
+  }
+
+  function tombolSeksi2(s, kelas) {
+    return s ? tautanSeksi(s.tombol2_url, s.tombol2_label, kelas) : '';
+  }
+
+  // Paragraf dipisah baris kosong, sama seperti deskripsi produk. Satu Enter
+  // dipakai orang untuk merapikan tulisannya sendiri, bukan untuk memulai
+  // paragraf baru.
+  function paragraf(teks) {
+    return String(teks || '').split(/\n{2,}/).map(function (par) {
+      const bersih = par.trim();
+      return bersih ? '<p>' + esc(bersih) + '</p>' : '';
+    }).join('');
+  }
+
+  // -------------------------------------------------------------------------
+  // Halaman
+  // -------------------------------------------------------------------------
+
+  function kosongTotal() {
+    return '<div class="wrap"><div class="kosong">' +
+      '<span class="plat">Katalog</span>' +
+      '<h1>Etalasenya sedang disiapkan</h1>' +
+      '<p>Belum ada produk yang ditampilkan di sini. Kopinya tetap bisa dibeli lewat toko resmi kami.</p>' +
+      '<a class="tombol" href="' + MARKETPLACE + '" target="_blank" rel="noopener">Belanja di TikTok Shop</a>' +
+      '</div></div>';
+  }
+
+  // Katalog lengkap. Dulu ini isi halaman depan; sekarang halaman depan punya
+  // tugas lain -- memperkenalkan -- dan katalognya pindah ke /shop/ supaya
+  // keduanya tidak saling memendekkan.
+  function shop(data, kategoriAktif) {
+    if (data.produk.length === 0) return kosongTotal();
+
     const daftar = data.produk.filter(function (p) {
       return !kategoriAktif || p.kategori === kategoriAktif;
     });
-
-    if (data.produk.length === 0) {
-      return '<div class="wrap"><div class="kosong">' +
-        '<span class="plat">Katalog</span>' +
-        '<h1>Etalasenya sedang disiapkan</h1>' +
-        '<p>Belum ada produk yang ditampilkan di sini. Kopinya tetap bisa dibeli lewat toko resmi kami.</p>' +
-        '<a class="tombol" href="' + MARKETPLACE + '" target="_blank" rel="noopener">Belanja di TikTok Shop</a>' +
-        '</div></div>';
-    }
-
-    const sorot = daftar[0] || data.produk[0];
     const judul = kategoriAktif ? 'Kopi ' + kategoriAktif : 'Semua kopi yang kami sangrai';
 
-    return '' +
-      '<div class="hero">' +
-        '<div class="wrap">' +
-          '<div class="hero-teks">' +
-            '<span class="plat">Roastery &middot; Gunung Puntang, Jawa Barat</span>' +
-            '<h1>Kopi yang baru disangrai, bukan yang lama menunggu</h1>' +
-            '<p>Arabika dan Robusta dari petani Jawa Barat, digiling sesuai alat seduhmu, dikirim dari roastery kami.</p>' +
-            '<div class="aksi">' +
-              '<a class="tombol amber" href="#katalog">Lihat katalog</a>' +
-              '<a class="tombol garis" href="' + MARKETPLACE + '" target="_blank" rel="noopener">Toko TikTok Shop</a>' +
-            '</div>' +
-          '</div>' +
-          '<div class="hero-gambar">' + gambar(data, sorot, 800, '(max-width: 900px) 92vw, 45vw') + '</div>' +
+    return '<div class="wrap">' +
+      '<section id="katalog">' +
+        '<div class="kepala-bagian"><div><span class="plat">Katalog</span><h2>' + esc(judul) + '</h2></div></div>' +
+        saringan(data, kategoriAktif) +
+        '<p class="hitung plat">' + daftar.length + ' produk</p>' +
+        '<div class="grid">' +
+          (daftar.length ? daftar.map(function (p) { return kartu(data, p); }).join('')
+                         : '<p class="plat">Belum ada produk di kategori ini.</p>') +
         '</div>' +
-      '</div>' +
-      '<div class="pita">' +
-        '<div class="wrap">' +
-          '<article><h3>Murni 100%</h3><p>Kopi asli tanpa campuran apa pun.</p></article>' +
-          '<article><h3>Pilih gilingan</h3><p>Biji utuh sampai halus espresso.</p></article>' +
-          '<article><h3>Kirim seluruh Indonesia</h3><p>Lewat ekspedisi pilihanmu.</p></article>' +
-        '</div>' +
-      '</div>' +
-      '<div class="wrap">' +
-        '<section id="katalog">' +
-          '<div class="kepala-bagian"><div><span class="plat">Katalog</span><h2>' + esc(judul) + '</h2></div></div>' +
-          saringan(data, kategoriAktif) +
-          '<p class="hitung plat">' + daftar.length + ' produk</p>' +
-          '<div class="grid">' +
-            (daftar.length ? daftar.map(function (p) { return kartu(data, p); }).join('')
-                           : '<p class="plat">Belum ada produk di kategori ini.</p>') +
+      '</section>' +
+    '</div>';
+  }
+
+  function heroBeranda(data) {
+    const s = seksiSatu(data, 'home', 'hero');
+    const judul = (s && s.judul) || 'Kopi yang baru disangrai, bukan yang lama menunggu';
+    const plat = (s && s.subjudul) || 'Roastery \u00b7 Gunung Puntang, Jawa Barat';
+    const teks = s && s.teks;
+
+    // Kalau pemilik belum memilih foto hero, dipakai foto produk pertama --
+    // lebih baik daripada blok warna, dan pasti foto kopinya sendiri.
+    const gambar = gambarSeksi(data, s, 800, '(max-width: 900px) 92vw, 45vw', judul) ||
+      (data.produk.length ? gambarProduk(data, data.produk[0], 800, '(max-width: 900px) 92vw, 45vw') : '');
+
+    return '<div class="hero"><div class="wrap">' +
+        '<div class="hero-teks">' +
+          '<span class="plat">' + esc(plat) + '</span>' +
+          '<h1>' + esc(judul) + '</h1>' +
+          (teks ? '<p>' + esc(teks) + '</p>' : '') +
+          '<div class="aksi">' +
+            (tombolSeksi(s, 'amber') || '<a class="tombol amber" href="/shop/">Lihat katalog</a>') +
+            '<a class="tombol garis" href="' + MARKETPLACE + '" target="_blank" rel="noopener">Toko TikTok Shop</a>' +
           '</div>' +
-        '</section>' +
-      '</div>';
+        '</div>' +
+        '<div class="hero-gambar">' + gambar + '</div>' +
+      '</div></div>';
+  }
+
+  function alasanBeranda(data) {
+    const rows = seksiDari(data, 'home', 'alasan').filter(seksiTerisi);
+    if (!rows.length) return '';
+
+    // Yang berfoto dan yang tidak sengaja dibedakan bentuknya. Satu kartu
+    // berfoto di antara dua kartu polos terlihat seperti gambar yang gagal
+    // dimuat; seluruh barisnya mengikuti apakah fotonya sudah ada atau belum.
+    const berfoto = rows.some(function (s) { return s.foto_path; });
+    if (!berfoto) {
+      return '<div class="pita"><div class="wrap">' + rows.map(function (s) {
+        return '<article><h3>' + esc(s.judul || '') + '</h3>' +
+          (s.teks ? '<p>' + esc(s.teks) + '</p>' : '') + '</article>';
+      }).join('') + '</div></div>';
+    }
+
+    return '<div class="wrap"><section class="alasan">' +
+      rows.map(function (s) {
+        return '<article>' +
+          '<div class="alasan-foto">' +
+            (gambarSeksi(data, s, 400, '(max-width: 700px) 92vw, 280px', s.judul || '') ||
+             '<div class="biji" style="--tone:' + warnaBiji(s.judul || 'gemeos') + '"></div>') +
+          '</div>' +
+          '<h3>' + esc(s.judul || '') + '</h3>' +
+          (s.teks ? '<p>' + esc(s.teks) + '</p>' : '') +
+          tombolSeksi(s, 'garis') +
+        '</article>';
+      }).join('') +
+    '</section></div>';
+  }
+
+  function ceritaBeranda(data) {
+    const s = seksiSatu(data, 'home', 'cerita');
+    if (!seksiTerisi(s)) return '';
+
+    const gambar = gambarSeksi(data, s, 800, '(max-width: 900px) 92vw, 45vw', s.judul || '');
+    return '<div class="wrap"><section class="cerita">' +
+        (gambar ? '<div class="cerita-foto">' + gambar + '</div>' : '') +
+        '<div class="cerita-teks">' +
+          (s.subjudul ? '<span class="plat">' + esc(s.subjudul) + '</span>' : '') +
+          (s.judul ? '<h2>' + esc(s.judul) + '</h2>' : '') +
+          '<div class="tulisan">' + paragraf(s.teks) + '</div>' +
+          tombolSeksi(s, 'garis') +
+        '</div>' +
+      '</section></div>';
+  }
+
+  function testimoniBeranda(data) {
+    const rows = seksiDari(data, 'home', 'testimoni').filter(function (s) { return s.teks; });
+    if (!rows.length) return '';
+
+    return '<div class="wrap"><section>' +
+      '<div class="kepala-bagian"><div><span class="plat">Kata pembeli</span>' +
+        '<h2>Yang mereka bilang setelah menyeduhnya</h2></div></div>' +
+      '<div class="testimoni">' + rows.map(function (s) {
+        return '<figure>' +
+          '<blockquote>' + esc(s.teks) + '</blockquote>' +
+          (s.judul ? '<figcaption>' + esc(s.judul) +
+            (s.subjudul ? ' <span class="plat">' + esc(s.subjudul) + '</span>' : '') +
+            '</figcaption>' : '') +
+        '</figure>';
+      }).join('') + '</div>' +
+    '</section></div>';
+  }
+
+  function lokasiBeranda(data) {
+    const rows = seksiDari(data, 'home', 'lokasi').filter(seksiTerisi);
+    if (!rows.length) return '';
+
+    return '<div class="wrap"><section>' +
+      '<div class="kepala-bagian"><div><span class="plat">Kunjungi</span><h2>Tempat kami</h2></div></div>' +
+      '<div class="lokasi">' + rows.map(function (s) {
+        return '<article>' +
+          (s.judul ? '<h3>' + esc(s.judul) + '</h3>' : '') +
+          (s.teks ? '<p>' + esc(s.teks) + '</p>' : '') +
+          '<div class="aksi">' + tombolSeksi(s, 'garis') + tombolSeksi2(s, 'garis') + '</div>' +
+        '</article>';
+      }).join('') + '</div>' +
+    '</section></div>';
+  }
+
+  // Halaman depan: memperkenalkan, lalu menunjukkan barangnya, lalu bercerita.
+  // Urutannya bukan selera -- pengunjung dari tautan TikTok belum tentu tahu ini
+  // siapa, dan yang mereka cari lebih dulu adalah kopinya, bukan riwayatnya.
+  function beranda(data) {
+    if (data.produk.length === 0 && !seksiTerisi(seksiSatu(data, 'home', 'hero'))) return kosongTotal();
+
+    const sorot = data.produk.slice(0, 8);
+
+    return heroBeranda(data) +
+      (data.produk.length
+        ? '<div class="wrap"><section id="katalog">' +
+            '<div class="kepala-bagian"><div><span class="plat">Katalog</span>' +
+              '<h2>Kopi yang kami sangrai</h2></div>' +
+              '<a class="lanjut-bagian" href="/shop/">Semua produk &rarr;</a></div>' +
+            '<div class="grid">' + sorot.map(function (p) { return kartu(data, p); }).join('') + '</div>' +
+          '</section></div>'
+        : '') +
+      ceritaBeranda(data) +
+      alasanBeranda(data) +
+      testimoniBeranda(data) +
+      lokasiBeranda(data);
+  }
+
+  // Halaman "Tentang Kami". Kosong sampai pemiliknya menulis: yang pantas ada di
+  // sini -- sejak kapan, oleh siapa, kenapa -- tidak ada di data mana pun, dan
+  // mengarangnya berarti menaruh klaim palsu justru di halaman yang dibuka orang
+  // untuk memutuskan apakah toko ini bisa dipercaya.
+  function tentang(data) {
+    const kepala = seksiSatu(data, 'tentang', 'hero');
+    const isi = seksiDari(data, 'tentang', 'isi').filter(seksiTerisi);
+
+    if (!seksiTerisi(kepala) && !isi.length) {
+      return '<div class="wrap"><div class="kosong">' +
+        '<span class="plat">Tentang Kami</span>' +
+        '<h1>Halamannya sedang ditulis</h1>' +
+        '<p>Sementara ini, kopinya bisa dilihat di katalog.</p>' +
+        '<a class="tombol" href="/shop/">Lihat katalog</a>' +
+      '</div></div>';
+    }
+
+    return '<div class="wrap">' +
+      '<section class="tentang-kepala">' +
+        '<span class="plat">' + esc((kepala && kepala.subjudul) || 'Tentang Kami') + '</span>' +
+        '<h1>' + esc((kepala && kepala.judul) || 'Gemeos Coffee') + '</h1>' +
+        (kepala && kepala.teks ? '<div class="tulisan">' + paragraf(kepala.teks) + '</div>' : '') +
+        (kepala && kepala.foto_path
+          ? '<div class="tentang-foto">' +
+              gambarSeksi(data, kepala, 1600, '(max-width: 1200px) 92vw, 1152px', kepala.judul || '') +
+            '</div>'
+          : '') +
+      '</section>' +
+      isi.map(function (s) {
+        const gambar = gambarSeksi(data, s, 800, '(max-width: 900px) 92vw, 45vw', s.judul || '');
+        return '<section class="cerita">' +
+          (gambar ? '<div class="cerita-foto">' + gambar + '</div>' : '') +
+          '<div class="cerita-teks">' +
+            (s.judul ? '<h2>' + esc(s.judul) + '</h2>' : '') +
+            '<div class="tulisan">' + paragraf(s.teks) + '</div>' +
+            tombolSeksi(s, 'garis') +
+          '</div>' +
+        '</section>';
+      }).join('') +
+    '</div>';
   }
 
   function keterangan(data, p) {
@@ -287,7 +511,7 @@
           '<div class="galeri">' +
             '<div class="galeri-utama" id="galeri-utama">' +
               (habis ? '<span class="tanda habis">Habis</span>' : '') +
-              gambar(data, p, 800, '(max-width: 900px) 92vw, 45vw') +
+              gambarProduk(data, p, 800, '(max-width: 900px) 92vw, 45vw') +
             '</div>' +
             kecil +
           '</div>' +
@@ -332,7 +556,8 @@
     urlFoto: urlFoto, srcsetFoto: srcsetFoto, varianDari: varianDari, fotoDari: fotoDari,
     produkHabis: produkHabis, hargaTerendah: hargaTerendah,
     kategoriDaftar: kategoriDaftar,
-    beranda: beranda, produk: produk,
+    seksiDari: seksiDari, seksiSatu: seksiSatu, seksiTerisi: seksiTerisi,
+    beranda: beranda, shop: shop, tentang: tentang, produk: produk,
     MARKETPLACE: MARKETPLACE
   };
 

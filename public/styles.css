@@ -183,3 +183,39 @@ td code { background: var(--hover); border: 1px solid var(--border); border-radi
 .segera { min-height: 100vh; display: grid; place-items: center; padding: 22px; text-align: center; }
 .segera h1 { margin: 0 0 10px; font-size: 26px; letter-spacing: -0.02em; }
 .segera p { margin: 0 0 20px; color: var(--text-faint); max-width: 44ch; }
+
+/* --- Halaman Website: isi halaman depan dan Tentang Kami -------------------
+ *
+ * Satu bagian halaman = satu blok bergaris di dalam kartu. Bagian yang boleh
+ * berulang (kartu alasan, testimoni, lokasi) bisa banyak blok, jadi tiap blok
+ * harus terbaca sebagai satuan sendiri; tanpa garis pemisah, dua testimoni
+ * berturut-turut terlihat seperti satu formulir panjang.
+ */
+
+.seksi-baris { padding: 14px 0; border-top: 1px solid var(--border); }
+.seksi-baris:first-of-type { border-top: none; padding-top: 4px; }
+
+.seksi-kepala { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.seksi-kepala label { margin: 0; }
+
+.plat-admin {
+  font-family: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* Pratinjau sengaja kecil: yang perlu dipastikan di sini cuma "foto yang benar
+   sudah terpasang", bukan detailnya -- untuk itu ada tombol Lihat toko. */
+.seksi-pratinjau { display: flex; align-items: center; gap: 10px; }
+.seksi-pratinjau img {
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  display: block;
+}
+
+.seksi-baris textarea { min-height: 84px; }
