@@ -60,6 +60,21 @@
     <h1 class="judul-halaman">Katalog Toko</h1>
     <p class="subjudul">Produk, varian, stok dan foto yang tampil di gemeoscoffee.com</p>
 
+    <!-- Halaman toko dibangun sekali saat deploy, bukan dirakit di browser tiap
+         kunjungan. Perubahan di halaman ini masuk database seketika, tapi baru
+         terlihat pembeli setelah dibangun ulang -- dan itu bagian yang paling
+         mudah terlupa, karena semua yang tampak di halaman ini sudah benar. -->
+    <div class="card">
+      <h3>Terbitkan Perubahan</h3>
+      <p class="card-note">
+        Yang disunting di halaman ini <b>belum terlihat pembeli</b> sampai halaman tokonya dibangun ulang.
+        Tekan tombol ini setelah selesai menyunting &mdash; sekali saja cukup untuk semua perubahan
+        sekaligus. Toko berubah satu sampai dua menit kemudian.
+      </p>
+      <button class="btn-primary" id="toko-bangun-btn">Terbitkan ke Toko</button>
+      <p id="toko-bangun-status" style="margin-top:10px;font-size:13px"></p>
+    </div>
+
     <div class="card">
       <h3>Tambah Produk</h3>
       <div class="row">

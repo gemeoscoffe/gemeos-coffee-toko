@@ -685,6 +685,48 @@ async function hapusTokoFoto(id) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Terbitkan
+// ---------------------------------------------------------------------------
+
+// Etalase toko bukan halaman yang merakit dirinya di browser: `build.js`
+// menariknya dari Supabase saat deploy lalu menulis satu berkas HTML per
+// produk, supaya perayap WhatsApp dan Instagram -- yang tidak menjalankan
+// JavaScript -- tetap melihat judul, foto dan harganya. Konsekuensinya, katalog
+// yang disunting di sini tidak ikut berubah sampai buildnya dijalankan lagi.
+//
+// Yang memicu build adalah Deploy Hook Cloudflare, dan URL-nya tidak ada di
+// halaman ini dengan sengaja: hook itu tidak menanyakan siapa pemanggilnya,
+// jadi menempelkannya di sini sama saja dengan menyerahkannya ke setiap
+// pengunjung. Fungsi `bangun-ulang` di Supabase yang memegangnya, dan fungsi
+// itu memeriksa dulu apakah email pemanggil ada di `app_users`.
+async function bangunUlangToko() {
+  const btn = document.getElementById('toko-bangun-btn');
+  const status = document.getElementById('toko-bangun-status');
+
+  btn.disabled = true;
+  status.style.color = '';
+  status.textContent = 'Meminta build...';
+
+  try {
+    const res = await fetch(SUPABASE_URL + '/functions/v1/bangun-ulang', {
+      method: 'POST',
+      headers: sbHeaders()
+    });
+    const data = await res.json().catch(function() { return {}; });
+    if (!res.ok) throw new Error(data.pesan || 'Gagal memicu build: ' + res.status);
+    tokoStatus(status, true, data.pesan || 'Build dimulai.');
+  } catch (err) {
+    tokoStatus(status, false, err.message);
+  } finally {
+    // Tombolnya dinyalakan lagi setelah jeda yang sama dengan jeda di fungsinya,
+    // supaya orang tidak menekan berkali-kali menunggu halaman berubah -- satu
+    // build memakan satu jatah kuota bulanan Cloudflare.
+    setTimeout(function() { btn.disabled = false; }, 60000);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('toko-add-btn').addEventListener('click', tambahTokoProduk);
+  document.getElementById('toko-bangun-btn').addEventListener('click', bangunUlangToko);
 });

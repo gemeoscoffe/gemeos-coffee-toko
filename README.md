@@ -22,9 +22,22 @@ jalankan ulang build. Itu satu-satunya yang menyalakan indeks.
 ## Katalog berubah, halaman belum
 
 Halaman dibangun saat deploy, jadi mengubah katalog lewat `/admin` tidak
-langsung mengubah halaman yang tayang. Perlu build ulang — nanti lewat Deploy
-Hook yang dipanggil dari `/admin`, sementara ini lewat tombol di dashboard
-Cloudflare.
+langsung mengubah halaman yang tayang. Tombol **Terbitkan ke Toko** di `/admin`
+yang menjalankan buildnya; halaman toko berubah satu sampai dua menit kemudian.
+
+Jalurnya `/admin` → Edge Function `bangun-ulang` → Deploy Hook Cloudflare.
+Hook-nya sengaja tidak ada di halaman ini: hook tidak menanyakan siapa
+pemanggilnya, jadi URL yang ikut terkirim ke browser sama saja dengan
+menyerahkan kuota build ke siapa pun yang membuka `/admin`. Fungsinya yang
+memegang URL itu — sebagai secret `PAGES_DEPLOY_HOOK` — dan ia menolak pemanggil
+yang emailnya tidak ada di `app_users`, syarat yang sama dengan `is_app_user()`
+di database. Kodenya di `supabase/functions/bangun-ulang/` di repo v2, satu
+tempat dengan migrasi.
+
+Kalau hari itu jatuh lima hari tanpa build seperti 21 Agustus 2026, gejalanya
+menyesatkan: katalog di `/admin` benar, database benar, tapi toko menampilkan
+produk lama dan foto yang gagal dimuat — karena foto yang dirujuk halaman lama
+sudah dihapus waktu foto barunya diunggah.
 
 Repo ini terpisah dari [`gemeos-coffee-v2`](https://github.com/gemeoscoffe/gemeos-coffee-v2)
 — dashboard pembukuan — supaya deploy toko tidak bisa menyentuh dashboard dan
