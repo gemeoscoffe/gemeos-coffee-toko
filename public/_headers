@@ -1,0 +1,20 @@
+# Cloudflare Pages membaca berkas ini dari akar situs.
+#
+# Halaman toko dibangun ulang tiap kali katalog berubah, dan alamatnya tidak
+# pernah berganti -- `/produk/arabika-puntang-original-premium/` hari ini dan
+# bulan depan adalah alamat yang sama dengan isi yang berbeda. Tanpa aturan di
+# bawah, browser dan edge sama-sama boleh menyimpan versi lama selama yang
+# mereka mau, dan pemiliknya menekan Terbitkan lalu melihat halaman yang tidak
+# berubah -- lalu menyimpulkan tombolnya rusak.
+#
+# Semua berkas di sini kecil dan ditulis ulang tiap deploy, jadi tidak ada yang
+# didapat dari menyimpannya lama-lama. Revalidasi tiap kali, dan biarkan 304
+# yang menghemat.
+/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Pustaka Supabase satu-satunya yang pantas disimpan lama: ukurannya jauh lebih
+# besar dari halaman mana pun di sini, dan hanya berubah kalau pustakanya
+# dinaikkan versinya -- yang berarti commit baru dan deploy baru.
+/vendor/*
+  Cache-Control: public, max-age=86400

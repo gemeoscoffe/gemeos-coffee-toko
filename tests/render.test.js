@@ -152,6 +152,21 @@ test('hanya tautan keluar yang membuka tab baru', function () {
   assert.match(html, /href="https:\/\/wa\.me\/620000" target="_blank" rel="noopener"/);
 });
 
+// Hero sengaja tidak berfoto. Waktu masih berfoto, ia satu-satunya bagian
+// halaman yang bisa rusak sendiri: mengganti fotonya menghapus berkas yang
+// lama, sementara halaman yang tayang masih menunjuk ke sana sampai build
+// berikutnya jalan -- dan yang pertama dilihat pengunjung jadi bingkai kosong.
+test('hero tidak memuat gambar sama sekali', function () {
+  const d = data({
+    foto: [{ id: 1, produk_id: 1, path: 'produk/1/x', lebar_tersedia: [400, 800] }],
+    seksi: [seksi({ judul: 'Judulnya', foto_path: 'seksi/1/y', foto_lebar: [400, 800] })]
+  });
+  const hero = RENDER.beranda(d).split('class="wrap"')[0];
+  assert.doesNotMatch(hero, /<img/);
+  assert.doesNotMatch(hero, /seksi\/1\/y/);
+  assert.match(hero, /class="hero-latar"/);
+});
+
 test('hero memakai tulisan pemilik kalau ada, dan tetap berdiri kalau belum', function () {
   const sendiri = RENDER.beranda(data({
     seksi: [seksi({ judul: 'Judul dari pemilik', subjudul: 'Label kecil' })]

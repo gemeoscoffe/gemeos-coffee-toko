@@ -176,7 +176,17 @@ h3 { font-size: 20px; line-height: 1.25; letter-spacing: -0.01em; }
 }
 
 /* ---------------------------------------------------------------------------
-   Hero -- garis kontur
+   Hero -- garis kontur dan uap
+
+   Tidak ada foto di sini, dan itu disengaja. Waktu separuh kanannya masih
+   gambar, hero adalah satu-satunya bagian halaman yang bisa rusak sendiri:
+   mengganti fotonya menghapus berkas yang lama, sementara halaman yang tayang
+   masih menunjuk ke sana sampai build berikutnya jalan. Latar yang digambar
+   sendiri tidak punya berkas untuk hilang.
+
+   Semuanya gradien -- tanpa berkas gambar, tanpa JavaScript, dan tanpa
+   `filter: blur()`, yang pada tiga kotak sebesar ini akan membuat HP murah
+   tersendat. Gradien radial memang sudah lembut dengan sendirinya.
    --------------------------------------------------------------------------- */
 
 .hero {
@@ -184,54 +194,102 @@ h3 { font-size: 20px; line-height: 1.25; letter-spacing: -0.01em; }
   background: var(--sangrai);
   color: var(--susu);
   overflow: hidden;
+  isolation: isolate;
 }
 
 /* Kontur digambar dengan gradien berulang, bukan data path SVG yang panjang:
    hasilnya sama-sama garis ketinggian yang melingkar, tapi tanpa satu kilobyte
-   pun koordinat yang harus diunduh dan tidak ada yang perlu dirawat. */
+   pun koordinat yang harus diunduh dan tidak ada yang perlu dirawat.
+
+   Hanyutnya 72 detik sekali putar -- cukup pelan untuk tidak pernah terbaca
+   sebagai "sesuatu sedang memuat", tapi cukup untuk membuat halaman terasa
+   hidup waktu orang berhenti membaca sebentar. */
 .hero::before {
   content: "";
   position: absolute;
-  inset: -20% -10%;
+  inset: -26% -16%;
   background:
     repeating-radial-gradient(ellipse 62% 78% at 76% 34%,
       transparent 0 26px, rgba(167, 107, 45, 0.55) 26px 27px);
-  opacity: 0.28;
+  opacity: 0.26;
   pointer-events: none;
+  animation: kontur-hanyut 72s ease-in-out infinite;
+  will-change: transform;
 }
 
+@keyframes kontur-hanyut {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(-2.4%, 1.8%, 0) scale(1.07); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+/* Uap yang naik dari bawah layar. Tiga gumpal dengan lebar, kecepatan dan jeda
+   yang berbeda-beda supaya polanya tidak pernah terlihat berulang -- kalau
+   ketiganya seirama, yang terbaca bukan uap melainkan animasi. */
+.hero-latar {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.uap {
+  position: absolute;
+  bottom: -34%;
+  width: 44vmin;
+  height: 96vmin;
+  border-radius: 50%;
+  background: radial-gradient(closest-side,
+    rgba(211, 164, 104, 0.30),
+    rgba(211, 164, 104, 0.13) 46%,
+    rgba(211, 164, 104, 0) 74%);
+  opacity: 0;
+  animation: uap-naik 26s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.uap:nth-child(1) { left: 6%;  width: 46vmin; animation-duration: 27s; animation-delay: -3s; }
+.uap:nth-child(2) { left: 41%; width: 34vmin; animation-duration: 19s; animation-delay: -12s; }
+.uap:nth-child(3) { left: 72%; width: 52vmin; animation-duration: 33s; animation-delay: -21s; }
+
+@keyframes uap-naik {
+  0%   { transform: translate3d(0, 14%, 0) scale(0.84); opacity: 0; }
+  22%  { opacity: 0.58; }
+  64%  { opacity: 0.40; }
+  100% { transform: translate3d(7%, -82%, 0) scale(1.26); opacity: 0; }
+}
+
+/* Tanpa gambar di sebelahnya, tulisannya tidak lagi berdesak di separuh kiri.
+   Ditengahkan supaya judul pendek seperti nama merek tidak menggantung di satu
+   sisi dengan ruang kosong sebesar itu di sebelahnya. */
 .hero .wrap {
   position: relative;
-  display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  gap: 56px;
-  align-items: center;
-  padding-top: 84px;
-  padding-bottom: 84px;
+  display: flex;
+  justify-content: center;
+  padding-top: 108px;
+  padding-bottom: 108px;
 }
 
-.hero-teks { display: flex; flex-direction: column; gap: 24px; align-items: start; }
+.hero-teks {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+  text-align: center;
+}
 .hero-teks .plat { color: var(--amber-muda); }
-.hero-teks h1 { color: var(--susu); max-width: 15ch; }
-.hero-teks p { margin: 0; max-width: 42ch; font-size: 17px; color: rgba(251, 243, 232, 0.76); }
-.hero .aksi { display: flex; flex-wrap: wrap; gap: 12px; }
+.hero-teks h1 { color: var(--susu); max-width: 20ch; margin: 0; }
+.hero-teks p { margin: 0; max-width: 54ch; font-size: 17px; color: rgba(251, 243, 232, 0.76); }
+.hero .aksi { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
 .hero .tombol.garis { color: var(--susu); border-color: rgba(251, 243, 232, 0.32); }
 .hero .tombol.garis:hover { border-color: var(--susu); }
 
-.hero-gambar {
-  aspect-ratio: 1;
-  background: var(--sangrai-tua);
-  border: 1px solid rgba(251, 243, 232, 0.14);
-  overflow: hidden;
-  display: grid;
-  place-items: center;
-}
-
-.hero-gambar img { width: 100%; height: 100%; object-fit: cover; }
-
 @media (max-width: 900px) {
-  .hero .wrap { grid-template-columns: 1fr; gap: 34px; padding-top: 52px; padding-bottom: 52px; }
-  .hero-gambar { aspect-ratio: 4 / 3; }
+  .hero .wrap { padding-top: 66px; padding-bottom: 66px; }
+  /* Dua gumpal saja di layar sempit: yang ketiga hampir seluruhnya di luar
+     layar, dan tetap digambar tiap frame. */
+  .uap:nth-child(3) { display: none; }
 }
 
 /* Biji kopi untuk produk yang fotonya belum diunggah. Digambar, bukan dibiarkan
@@ -253,8 +311,6 @@ h3 { font-size: 20px; line-height: 1.25; letter-spacing: -0.01em; }
   background: var(--naik);
   border-radius: 999px;
 }
-
-.hero-gambar .biji::after { background: var(--sangrai-tua); }
 
 /* ---------------------------------------------------------------------------
    Pita janji
@@ -537,7 +593,12 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
 
 .kaki-bawah .plat { color: var(--amber-muda); }
 
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* Sebagian orang merasa pusing oleh gerakan yang terus berjalan, dan sistemnya
+   sudah menyampaikan itu. Uapnya berhenti dengan opacity 0 -- yang tersisa latar
+   cokelat dengan garis konturnya, persis seperti sebelum ada animasi. */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
 
 /* ---------------------------------------------------------------------------
    Tulisan produk dan status stok

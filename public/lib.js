@@ -34,6 +34,18 @@ async function sbSelect(table, query) {
   return res.json();
 }
 
+// Etalasenya dibangun saat deploy, jadi tiap penulisan yang berhasil membuat
+// halaman yang tayang jadi tertinggal satu langkah. Diberitahukan dari sini,
+// bukan dari tiap pemanggil: ada belasan tempat yang menulis, dan yang lupa
+// memanggil tidak akan bersuara -- yang terjadi cuma pemiliknya menyangka
+// perubahannya sudah tayang padahal belum.
+//
+// Halaman lain yang memakai lib.js belum tentu punya tombol terbit, jadi
+// keberadaannya diperiksa dulu.
+function sbTandaiPerubahan() {
+  if (typeof tandaiPerubahan === 'function') tandaiPerubahan();
+}
+
 async function sbWrite(method, table, query, body) {
   const res = await fetch(SUPABASE_URL + '/rest/v1/' + table + (query ? '?' + query : ''), {
     method: method,
@@ -41,6 +53,7 @@ async function sbWrite(method, table, query, body) {
     body: JSON.stringify(body)
   });
   if (!res.ok) throw await sbError(res, table + ' ' + method + ' gagal');
+  sbTandaiPerubahan();
   return res.json();
 }
 
@@ -49,6 +62,7 @@ async function sbDelete(table, query) {
     method: 'DELETE', headers: sbHeaders()
   });
   if (!res.ok) throw await sbError(res, table + ' delete gagal');
+  sbTandaiPerubahan();
 }
 
 async function sbRpc(fn, params) {

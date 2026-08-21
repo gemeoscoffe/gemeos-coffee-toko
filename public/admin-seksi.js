@@ -26,9 +26,12 @@ const SEKSI_BUCKET = 'produk';
 // etalase tidak menggambar yang tidak aktif. Jadi halaman depan tidak pernah
 // menampilkan judul tanpa isi hanya karena barisnya sudah dibuat.
 const SEKSI_BENTUK = {
+  // Hero tidak punya kotak foto. Latarnya digambar CSS -- garis kontur yang
+  // hanyut dan uap yang naik -- dan itu satu-satunya bagian halaman yang tidak
+  // bisa rusak karena berkasnya hilang.
   'home/hero': {
     nama: 'Hero halaman depan',
-    catatan: 'Yang pertama dilihat orang yang membuka gemeoscoffee.com. Fotonya tampil besar di sebelah kanan tulisan.',
+    catatan: 'Yang pertama dilihat orang yang membuka gemeoscoffee.com. Latarnya bergerak sendiri, jadi tidak ada foto yang perlu diunggah di sini.',
     banyak: false,
     kolom: [
       { k: 'subjudul', label: 'Baris kecil di atas judul', ph: 'Roastery · Gunung Puntang, Jawa Barat' },
@@ -36,8 +39,7 @@ const SEKSI_BENTUK = {
       { k: 'teks', label: 'Kalimat pembuka', panjang: true, ph: 'Satu-dua kalimat tentang kopinya.' },
       { k: 'tombol_label', label: 'Teks tombol', ph: 'Lihat katalog', kecil: true },
       { k: 'tombol_url', label: 'Tujuan tombol', ph: '/shop/', kecil: true }
-    ],
-    foto: 'Foto hero'
+    ]
   },
 
   'home/cerita': {

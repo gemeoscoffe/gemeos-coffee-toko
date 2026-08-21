@@ -261,12 +261,10 @@ async function bangun() {
     return f ? RENDER.urlFoto(data.basisFoto, f, 800) : null;
   };
 
-  // Foto hero halaman depan dipilih pemilik; kalau belum ada, kartu berbagi
-  // memakai foto produk pertama seperti sebelumnya.
-  const hero = RENDER.seksiSatu(data, 'home', 'hero');
-  const fotoHero = hero && hero.foto_path
-    ? RENDER.urlFoto(data.basisFoto, { path: hero.foto_path, lebar_tersedia: hero.foto_lebar || [] }, 800)
-    : (data.produk.length ? fotoPertama(data.produk[0]) : null);
+  // Hero halaman depan tidak berfoto -- latarnya digambar CSS. Kartu berbagi
+  // WhatsApp tetap butuh sebuah gambar, dan foto produk pertama adalah pilihan
+  // yang jujur: itu memang kopi yang dijual halaman ini.
+  const fotoHero = data.produk.length ? fotoPertama(data.produk[0]) : null;
 
   // Beranda
   tulis('/', halaman({

@@ -279,29 +279,41 @@
     '</div>';
   }
 
+  // Hero tanpa foto, sengaja.
+  //
+  // Dulu separuh kanannya sebuah gambar, dan itu jadi satu-satunya bagian
+  // halaman yang bisa rusak sendiri: mengganti fotonya menghapus berkas yang
+  // lama, sementara halaman yang sudah tayang masih menunjuk ke sana sampai
+  // build berikutnya jalan. Selama jeda itu, yang pertama dilihat pengunjung
+  // adalah bingkai kosong dengan tulisan alt di pojoknya. Latar yang digambar
+  // sendiri tidak punya berkas untuk hilang.
+  //
+  // Yang menggantikannya bergerak pelan: garis kontur yang hanyut dan tiga
+  // gumpal uap yang naik. Semuanya gradien CSS -- tanpa berkas, tanpa
+  // JavaScript, dan berhenti sendiri kalau perangkatnya minta gerakan
+  // dikurangi.
   function heroBeranda(data) {
     const s = seksiSatu(data, 'home', 'hero');
     const judul = (s && s.judul) || 'Kopi yang baru disangrai, bukan yang lama menunggu';
     const plat = (s && s.subjudul) || 'Roastery \u00b7 Gunung Puntang, Jawa Barat';
     const teks = s && s.teks;
 
-    // Kalau pemilik belum memilih foto hero, dipakai foto produk pertama --
-    // lebih baik daripada blok warna, dan pasti foto kopinya sendiri.
-    const gambar = gambarSeksi(data, s, 800, '(max-width: 900px) 92vw, 45vw', judul) ||
-      (data.produk.length ? gambarProduk(data, data.produk[0], 800, '(max-width: 900px) 92vw, 45vw') : '');
-
-    return '<div class="hero"><div class="wrap">' +
-        '<div class="hero-teks">' +
-          '<span class="plat">' + esc(plat) + '</span>' +
-          '<h1>' + esc(judul) + '</h1>' +
-          (teks ? '<p>' + esc(teks) + '</p>' : '') +
-          '<div class="aksi">' +
-            (tombolSeksi(s, 'amber') || '<a class="tombol amber" href="/shop/">Lihat katalog</a>') +
-            '<a class="tombol garis" href="' + MARKETPLACE + '" target="_blank" rel="noopener">Toko TikTok Shop</a>' +
+    return '<div class="hero">' +
+        '<div class="hero-latar" aria-hidden="true">' +
+          '<span class="uap"></span><span class="uap"></span><span class="uap"></span>' +
+        '</div>' +
+        '<div class="wrap">' +
+          '<div class="hero-teks">' +
+            '<span class="plat">' + esc(plat) + '</span>' +
+            '<h1>' + esc(judul) + '</h1>' +
+            (teks ? '<p>' + esc(teks) + '</p>' : '') +
+            '<div class="aksi">' +
+              (tombolSeksi(s, 'amber') || '<a class="tombol amber" href="/shop/">Lihat katalog</a>') +
+              '<a class="tombol garis" href="' + MARKETPLACE + '" target="_blank" rel="noopener">Toko TikTok Shop</a>' +
+            '</div>' +
           '</div>' +
         '</div>' +
-        '<div class="hero-gambar">' + gambar + '</div>' +
-      '</div></div>';
+      '</div>';
   }
 
   function alasanBeranda(data) {

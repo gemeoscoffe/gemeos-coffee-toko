@@ -814,6 +814,24 @@ function terbitStatus(el, jenis, pesan) {
   el.className = 'terbit-status' + (jenis ? ' ' + jenis : '');
 }
 
+// "Kenapa perubahan saya tidak muncul di website?" -- pertanyaan yang muncul
+// karena halaman kelola tidak pernah mengatakan bahwa ia dan website adalah dua
+// hal yang terpisah oleh satu build. Sekarang ia mengatakannya, dan mengatakannya
+// tepat waktu: begitu ada yang tersimpan, bukan lewat catatan yang dibaca sekali
+// waktu halaman pertama kali dibuka lalu dilupakan.
+//
+// Dipanggil dari `lib.js` tiap penulisan berhasil, apa pun tabelnya.
+function tandaiPerubahan() {
+  const btn = document.getElementById('toko-bangun-btn');
+  const status = document.getElementById('toko-bangun-status');
+  if (!btn || !status) return;
+
+  btn.classList.add('perlu');
+  // Kalau build sedang berjalan, kabar itu yang lebih berguna daripada
+  // pengingat ini -- tombolnya toh sedang tidak bisa ditekan.
+  if (!btn.disabled) terbitStatus(status, 'perlu', 'Ada perubahan yang belum diterbitkan.');
+}
+
 async function bangunUlangToko() {
   const btn = document.getElementById('toko-bangun-btn');
   const status = document.getElementById('toko-bangun-status');
@@ -828,6 +846,7 @@ async function bangunUlangToko() {
     });
     const data = await res.json().catch(function() { return {}; });
     if (!res.ok) throw new Error(data.pesan || 'Gagal memicu build: ' + res.status);
+    btn.classList.remove('perlu');
     terbitStatus(status, 'ok', data.pesan || 'Build dimulai.');
   } catch (err) {
     terbitStatus(status, 'err', err.message);
