@@ -247,12 +247,26 @@ h3 { font-size: 20px; line-height: 1.25; letter-spacing: -0.01em; }
   z-index: 1;
   pointer-events: none;
   background:
+    /* Lelehan bawah: berakhir di warna halaman, bukan di ketiadaan. Tanpa ini
+       video berhenti di garis lurus dan hero terbaca seperti gambar yang
+       ditempel di atas halaman, bukan bagian dari halamannya. Berakhirnya di
+       `--kertas` juga berarti ikut berubah sendiri waktu perangkatnya bertema
+       gelap. */
+    linear-gradient(to top,
+      var(--kertas) 0%,
+      var(--kertas) 4%,
+      rgba(30, 19, 9, 0.30) 26%,
+      /* Ujungnya cokelat beralpha nol, bukan kata kunci `transparent` -- yang
+         itu sebenarnya hitam beralpha nol, dan peralihan ke sana melewati kabut
+         kelabu yang tidak diminta siapa pun. */
+      rgba(30, 19, 9, 0) 52%),
+    /* Pita gelap di kiri, tempat tulisan berdiri. Habis sebelum setengah lebar
+       supaya sisi kanan rekaman lewat apa adanya. */
     linear-gradient(to right,
       rgba(30, 19, 9, 0.74) 0%,
       rgba(30, 19, 9, 0.44) 26%,
       rgba(30, 19, 9, 0.12) 52%,
-      rgba(30, 19, 9, 0) 72%),
-    linear-gradient(to top, rgba(30, 19, 9, 0.34), transparent 42%);
+      rgba(30, 19, 9, 0) 72%);
 }
 
 /* Bayangan, bukan garis luar: rekaman di belakangnya berubah tiap frame, dan
