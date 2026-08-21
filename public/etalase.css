@@ -176,17 +176,17 @@ h3 { font-size: 20px; line-height: 1.25; letter-spacing: -0.01em; }
 }
 
 /* ---------------------------------------------------------------------------
-   Hero -- garis kontur dan uap
+   Hero -- latar video
 
-   Tidak ada foto di sini, dan itu disengaja. Waktu separuh kanannya masih
-   gambar, hero adalah satu-satunya bagian halaman yang bisa rusak sendiri:
-   mengganti fotonya menghapus berkas yang lama, sementara halaman yang tayang
-   masih menunjuk ke sana sampai build berikutnya jalan. Latar yang digambar
-   sendiri tidak punya berkas untuk hilang.
+   Videonya di belakang tulisan, bukan di sebelahnya: itu satu-satunya susunan
+   yang tidak berubah bentuk waktu layarnya berubah dari monitor jadi HP tegak.
+   Rekamannya persegi dan hero-nya melebar, jadi yang terlihat memang cuma pita
+   tengahnya -- `object-fit: cover` yang memotongnya, dan itu disengaja.
 
-   Semuanya gradien -- tanpa berkas gambar, tanpa JavaScript, dan tanpa
-   `filter: blur()`, yang pada tiga kotak sebesar ini akan membuat HP murah
-   tersendat. Gradien radial memang sudah lembut dengan sendirinya.
+   Tidak ada animasi CSS lagi di sini. Yang sebelumnya ada -- kontur hanyut dan
+   uap naik -- bergerak hanya supaya bergerak, dan gerakan tanpa isi adalah hal
+   pertama yang membuat orang menutup tab. Kalau videonya belum dipasang, hero
+   kembali jadi cokelat dengan garis kontur yang diam.
    --------------------------------------------------------------------------- */
 
 .hero {
@@ -199,97 +199,95 @@ h3 { font-size: 20px; line-height: 1.25; letter-spacing: -0.01em; }
 
 /* Kontur digambar dengan gradien berulang, bukan data path SVG yang panjang:
    hasilnya sama-sama garis ketinggian yang melingkar, tapi tanpa satu kilobyte
-   pun koordinat yang harus diunduh dan tidak ada yang perlu dirawat.
-
-   Hanyutnya 72 detik sekali putar -- cukup pelan untuk tidak pernah terbaca
-   sebagai "sesuatu sedang memuat", tapi cukup untuk membuat halaman terasa
-   hidup waktu orang berhenti membaca sebentar. */
+   pun koordinat yang harus diunduh. Disembunyikan waktu ada video -- dua pola
+   yang bertumpuk saling meramaikan, tidak ada yang menang. */
 .hero::before {
   content: "";
   position: absolute;
-  inset: -26% -16%;
+  inset: -20% -10%;
+  z-index: 0;
   background:
     repeating-radial-gradient(ellipse 62% 78% at 76% 34%,
       transparent 0 26px, rgba(167, 107, 45, 0.55) 26px 27px);
   opacity: 0.26;
   pointer-events: none;
-  animation: kontur-hanyut 72s ease-in-out infinite;
-  will-change: transform;
 }
+.hero-bervideo::before { display: none; }
 
-@keyframes kontur-hanyut {
-  0%   { transform: translate3d(0, 0, 0) scale(1); }
-  50%  { transform: translate3d(-2.4%, 1.8%, 0) scale(1.07); }
-  100% { transform: translate3d(0, 0, 0) scale(1); }
-}
-
-/* Uap yang naik dari bawah layar. Tiga gumpal dengan lebar, kecepatan dan jeda
-   yang berbeda-beda supaya polanya tidak pernah terlihat berulang -- kalau
-   ketiganya seirama, yang terbaca bukan uap melainkan animasi. */
 .hero-latar {
   position: absolute;
   inset: 0;
+  z-index: 0;
   overflow: hidden;
-  pointer-events: none;
-  z-index: -1;
+  background: var(--sangrai-tua);
 }
 
-.uap {
+.hero-media {
   position: absolute;
-  bottom: -34%;
-  width: 44vmin;
-  height: 96vmin;
-  border-radius: 50%;
-  background: radial-gradient(closest-side,
-    rgba(211, 164, 104, 0.30),
-    rgba(211, 164, 104, 0.13) 46%,
-    rgba(211, 164, 104, 0) 74%);
-  opacity: 0;
-  animation: uap-naik 26s ease-in-out infinite;
-  will-change: transform, opacity;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
-.uap:nth-child(1) { left: 6%;  width: 46vmin; animation-duration: 27s; animation-delay: -3s; }
-.uap:nth-child(2) { left: 41%; width: 34vmin; animation-duration: 19s; animation-delay: -12s; }
-.uap:nth-child(3) { left: 72%; width: 52vmin; animation-duration: 33s; animation-delay: -21s; }
-
-@keyframes uap-naik {
-  0%   { transform: translate3d(0, 14%, 0) scale(0.84); opacity: 0; }
-  22%  { opacity: 0.58; }
-  64%  { opacity: 0.40; }
-  100% { transform: translate3d(7%, -82%, 0) scale(1.26); opacity: 0; }
+/* Tirai gelap di atas rekaman. Bukan selera: tulisan putih di atas video yang
+   isinya berubah tiap detik akan terbaca di satu frame dan hilang di frame
+   berikutnya. Lebih pekat di kiri, tempat tulisannya berada. */
+.hero-bervideo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(to right,
+      rgba(30, 19, 9, 0.88) 0%, rgba(30, 19, 9, 0.70) 38%, rgba(30, 19, 9, 0.34) 100%),
+    linear-gradient(to top, rgba(30, 19, 9, 0.52), transparent 52%);
 }
 
-/* Tanpa gambar di sebelahnya, tulisannya tidak lagi berdesak di separuh kiri.
-   Ditengahkan supaya judul pendek seperti nama merek tidak menggantung di satu
-   sisi dengan ruang kosong sebesar itu di sebelahnya. */
 .hero .wrap {
   position: relative;
+  z-index: 2;
   display: flex;
-  justify-content: center;
-  padding-top: 108px;
-  padding-bottom: 108px;
+  align-items: center;
+  min-height: min(84vh, 720px);
+  padding-top: 72px;
+  padding-bottom: 72px;
 }
 
+/* Rata kiri, satu tumpukan. Judul sependek nama merek pun tetap punya tepi yang
+   sama dengan pelat di atasnya dan tombol di bawahnya -- yang membuatnya
+   terbaca sebagai satu blok, bukan tiga benda yang kebetulan berdekatan. */
 .hero-teks {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  align-items: center;
-  text-align: center;
+  align-items: start;
+  text-align: left;
+  max-width: 46rem;
 }
 .hero-teks .plat { color: var(--amber-muda); }
-.hero-teks h1 { color: var(--susu); max-width: 20ch; margin: 0; }
-.hero-teks p { margin: 0; max-width: 54ch; font-size: 17px; color: rgba(251, 243, 232, 0.76); }
-.hero .aksi { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
-.hero .tombol.garis { color: var(--susu); border-color: rgba(251, 243, 232, 0.32); }
+.hero-teks h1 {
+  color: var(--susu);
+  margin: 0;
+  max-width: 16ch;
+  font-size: clamp(36px, 6.2vw, 68px);
+  line-height: 1.04;
+}
+.hero-teks p { margin: 0; max-width: 44ch; font-size: 17px; color: rgba(251, 243, 232, 0.82); }
+.hero .aksi { display: flex; flex-wrap: wrap; gap: 12px; }
+.hero .tombol.garis { color: var(--susu); border-color: rgba(251, 243, 232, 0.42); }
 .hero .tombol.garis:hover { border-color: var(--susu); }
 
 @media (max-width: 900px) {
-  .hero .wrap { padding-top: 66px; padding-bottom: 66px; }
-  /* Dua gumpal saja di layar sempit: yang ketiga hampir seluruhnya di luar
-     layar, dan tetap digambar tiap frame. */
-  .uap:nth-child(3) { display: none; }
+  .hero .wrap { min-height: min(76vh, 560px); padding-top: 56px; padding-bottom: 56px; }
+}
+
+/* CSS bisa menyembunyikan video, tapi tidak bisa menghentikannya -- jadi yang
+   disembunyikan videonya, dan yang tersisa gambar diam di bawahnya. */
+@media (prefers-reduced-motion: reduce) {
+  .hero video.hero-media { display: none; }
 }
 
 /* Biji kopi untuk produk yang fotonya belum diunggah. Digambar, bukan dibiarkan
@@ -593,9 +591,6 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
 
 .kaki-bawah .plat { color: var(--amber-muda); }
 
-/* Sebagian orang merasa pusing oleh gerakan yang terus berjalan, dan sistemnya
-   sudah menyampaikan itu. Uapnya berhenti dengan opacity 0 -- yang tersisa latar
-   cokelat dengan garis konturnya, persis seperti sebelum ada animasi. */
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }

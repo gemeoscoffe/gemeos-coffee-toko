@@ -26,12 +26,9 @@ const SEKSI_BUCKET = 'produk';
 // etalase tidak menggambar yang tidak aktif. Jadi halaman depan tidak pernah
 // menampilkan judul tanpa isi hanya karena barisnya sudah dibuat.
 const SEKSI_BENTUK = {
-  // Hero tidak punya kotak foto. Latarnya digambar CSS -- garis kontur yang
-  // hanyut dan uap yang naik -- dan itu satu-satunya bagian halaman yang tidak
-  // bisa rusak karena berkasnya hilang.
   'home/hero': {
     nama: 'Hero halaman depan',
-    catatan: 'Yang pertama dilihat orang yang membuka gemeoscoffee.com. Latarnya bergerak sendiri, jadi tidak ada foto yang perlu diunggah di sini.',
+    catatan: 'Yang pertama dilihat orang yang membuka gemeoscoffee.com. Videonya jadi latar di belakang tulisan &mdash; tanpa suara, berulang sendiri. <b>Gambar pengganti</b> yang tampil selama videonya belum termuat, jadi pilih satu frame dari video yang sama supaya perpindahannya tidak terasa.',
     banyak: false,
     kolom: [
       { k: 'subjudul', label: 'Baris kecil di atas judul', ph: 'Roastery · Gunung Puntang, Jawa Barat' },
@@ -39,7 +36,9 @@ const SEKSI_BENTUK = {
       { k: 'teks', label: 'Kalimat pembuka', panjang: true, ph: 'Satu-dua kalimat tentang kopinya.' },
       { k: 'tombol_label', label: 'Teks tombol', ph: 'Lihat katalog', kecil: true },
       { k: 'tombol_url', label: 'Tujuan tombol', ph: '/shop/', kecil: true }
-    ]
+    ],
+    video: 'Video latar',
+    foto: 'Gambar pengganti video'
   },
 
   'home/cerita': {
@@ -150,6 +149,13 @@ function seksiBerkasFoto(s) {
   return lebar.map(function(w) { return s.foto_path + '-' + w + '.webp'; });
 }
 
+// Semua berkas milik satu baris, foto dan video sekaligus. Dipakai waktu barisnya
+// dihapus: menghapus barisnya saja meninggalkan berkas yang tidak dirujuk siapa
+// pun di bucket dan tidak akan pernah ditemukan lagi.
+function seksiSemuaBerkas(s) {
+  return seksiBerkasFoto(s).concat(s.video_path ? [s.video_path] : []);
+}
+
 // ---------------------------------------------------------------------------
 // Muat dan gambar
 // ---------------------------------------------------------------------------
@@ -198,6 +204,35 @@ function renderSeksiFoto(s, bentuk) {
     '<p class="seksi-status" data-id="' + s.id + '" style="margin:6px 0 0;font-size:13px"></p>';
 }
 
+// Batas 45 MB, bukan angka bulat yang enak dilihat: Supabase menolak unggahan
+// di atas 50 MB, dan menolaknya di sini -- sebelum berkasnya berjalan lewat
+// jaringan selama beberapa menit -- lebih baik daripada galat di ujungnya.
+//
+// Yang lebih menentukan bukan batas itu melainkan ukuran sebenarnya: video latar
+// diunduh tiap kali halaman depan dibuka, oleh pembeli yang sebagian besar
+// datang dari tautan TikTok dengan kuota sendiri. 3-5 MB masih sopan, 25 MB
+// tidak.
+const SEKSI_VIDEO_MAKS = 45 * 1024 * 1024;
+
+function renderSeksiVideo(s, bentuk) {
+  if (!bentuk.video) return '';
+
+  return '<div class="row" style="align-items:flex-end">' +
+      '<div><label>' + bentuk.video + '</label>' +
+        '<input type="file" class="seksi-video-file" data-id="' + s.id + '" accept="video/mp4,video/webm"></div>' +
+      (s.video_path
+        ? '<div class="seksi-pratinjau">' +
+            '<video src="' + esc(SUPABASE_URL + '/storage/v1/object/public/' + SEKSI_BUCKET + '/' + s.video_path) +
+              '" muted playsinline preload="metadata"></video>' +
+            '<button class="btn-secondary seksi-video-hapus" data-id="' + s.id + '">Hapus Video</button>' +
+          '</div>'
+        : '<p class="muted" style="font-size:13px;margin:0 0 6px">Belum ada video. Tanpa video, hero tampil polos dengan garis konturnya.</p>') +
+    '</div>' +
+    '<p class="note" style="margin:6px 0 0">Tanpa suara dan berulang sendiri &mdash; audio di dalamnya tidak akan pernah terdengar, ' +
+      'jadi lebih baik dibuang sebelum diunggah. Usahakan di bawah 5 MB: berkas ini diunduh tiap kali halaman depan dibuka.</p>' +
+    '<p class="seksi-video-status" data-id="' + s.id + '" style="margin:6px 0 0;font-size:13px"></p>';
+}
+
 function renderSeksiBaris(s, bentuk, nomor) {
   return '<div class="seksi-baris">' +
     '<div class="seksi-kepala">' +
@@ -216,6 +251,7 @@ function renderSeksiBaris(s, bentuk, nomor) {
         : '') +
     '</div>' +
     '<div class="row">' + bentuk.kolom.map(function(k) { return renderSeksiKotak(s, k); }).join('') + '</div>' +
+    renderSeksiVideo(s, bentuk) +
     renderSeksiFoto(s, bentuk) +
   '</div>';
 }
@@ -267,6 +303,12 @@ function wireSeksi(el) {
   });
   el.querySelectorAll('.seksi-foto-hapus').forEach(function(b) {
     b.addEventListener('click', function() { hapusSeksiFoto(Number(b.dataset.id)); });
+  });
+  el.querySelectorAll('.seksi-video-file').forEach(function(i) {
+    i.addEventListener('change', function() { unggahSeksiVideo(Number(i.dataset.id), i); });
+  });
+  el.querySelectorAll('.seksi-video-hapus').forEach(function(b) {
+    b.addEventListener('click', function() { hapusSeksiVideo(Number(b.dataset.id)); });
   });
 }
 
@@ -340,7 +382,7 @@ async function hapusSeksi(id) {
   if (!confirm('Hapus bagian ini' + (s.judul ? ' ("' + s.judul + '")' : '') + '?')) return;
 
   try {
-    for (const berkas of seksiBerkasFoto(s)) await hapusBerkasFoto(berkas);
+    for (const berkas of seksiSemuaBerkas(s)) await hapusBerkasFoto(berkas);
     await sbDelete('web_seksi', 'id=eq.' + id);
     await loadSeksiPage();
   } catch (err) {
@@ -395,6 +437,60 @@ async function unggahSeksiFoto(id, input) {
   } catch (err) {
     if (status) tokoStatus(status, false, err.message);
     input.value = '';
+  }
+}
+
+// Video diunggah apa adanya. Foto dikecilkan dulu di browser karena `canvas`
+// memang bisa menggambar ulang gambar; untuk video tidak ada padanannya yang
+// murah, dan menyandikan ulang video di browser berarti menahan tab pemiliknya
+// selama beberapa menit. Yang dipilih pemilik itulah yang naik -- karena itu
+// catatannya berkata jelas berapa besar yang pantas.
+async function unggahSeksiVideo(id, input) {
+  const s = SEKSI.find(function(x) { return x.id === id; });
+  const file = (input.files || [])[0];
+  const status = document.querySelector('.seksi-video-status[data-id="' + id + '"]');
+  if (!s || !file) return;
+
+  if (file.size > SEKSI_VIDEO_MAKS) {
+    if (status) tokoStatus(status, false, 'Video di atas 45 MB tidak bisa diunggah. Kompres dulu.');
+    input.value = '';
+    return;
+  }
+
+  // Ekstensi diambil dari nama berkasnya karena alamat video ikut apa adanya ke
+  // halaman -- tidak ada daftar ukuran seperti foto yang bisa menyusunnya.
+  const ekor = (file.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp4';
+  const lama = s.video_path;
+  const jalur = 'seksi/' + id + '/video-' + Date.now() + '.' + ekor;
+
+  try {
+    if (status) { status.style.color = ''; status.textContent = 'Mengunggah video...'; }
+    await unggahBerkasFoto(jalur, file);
+    await sbWrite('PATCH', 'web_seksi', 'id=eq.' + id, { video_path: jalur });
+
+    // Berkas lama dihapus setelah barisnya menunjuk ke yang baru. Urutan
+    // sebaliknya meninggalkan halaman yang menunjuk video yang sudah tidak ada
+    // kalau penyimpanannya gagal di tengah jalan.
+    if (lama) await hapusBerkasFoto(lama);
+
+    input.value = '';
+    await loadSeksiPage();
+  } catch (err) {
+    if (status) tokoStatus(status, false, err.message);
+    input.value = '';
+  }
+}
+
+async function hapusSeksiVideo(id) {
+  const s = SEKSI.find(function(x) { return x.id === id; });
+  if (!s || !s.video_path || !confirm('Hapus video latar hero?')) return;
+
+  try {
+    await hapusBerkasFoto(s.video_path);
+    await sbWrite('PATCH', 'web_seksi', 'id=eq.' + id, { video_path: null });
+    await loadSeksiPage();
+  } catch (err) {
+    alert('Gagal menghapus video: ' + err.message);
   }
 }
 

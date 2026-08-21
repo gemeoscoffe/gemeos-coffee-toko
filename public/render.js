@@ -200,6 +200,19 @@
     return s && s.foto_path ? { path: s.foto_path, lebar_tersedia: s.foto_lebar || [] } : null;
   }
 
+  // Video latar disimpan apa adanya, lengkap dengan ekstensinya -- tidak ada
+  // varian ukuran seperti foto, karena browser tidak bisa mengecilkan video
+  // sebelum mengunggahnya dan mengecilkannya di server berarti memasang
+  // pekerjaan yang seluruh situs ini justru dibuat untuk tidak punya.
+  function urlVideo(basisFoto, s) {
+    return s && s.video_path ? basisFoto + '/' + s.video_path : '';
+  }
+
+  function tipeVideo(jalur) {
+    const ekor = String(jalur || '').toLowerCase().split('.').pop();
+    return ekor === 'webm' ? 'video/webm' : ekor === 'ogv' ? 'video/ogg' : 'video/mp4';
+  }
+
   function gambarSeksi(data, s, lebar, sizes, alt) {
     const f = fotoSeksi(s);
     if (!f) return '';
@@ -279,29 +292,52 @@
     '</div>';
   }
 
-  // Hero tanpa foto, sengaja.
+  // Hero berlatar video.
   //
-  // Dulu separuh kanannya sebuah gambar, dan itu jadi satu-satunya bagian
-  // halaman yang bisa rusak sendiri: mengganti fotonya menghapus berkas yang
-  // lama, sementara halaman yang sudah tayang masih menunjuk ke sana sampai
-  // build berikutnya jalan. Selama jeda itu, yang pertama dilihat pengunjung
-  // adalah bingkai kosong dengan tulisan alt di pojoknya. Latar yang digambar
-  // sendiri tidak punya berkas untuk hilang.
+  // Videonya dipasang di belakang tulisan, bukan sebagai hiasan di sebelahnya:
+  // itu satu-satunya susunan yang tidak berubah bentuk waktu layarnya berubah
+  // dari monitor jadi HP tegak. `object-fit: cover` yang mengurus sisanya.
   //
-  // Yang menggantikannya bergerak pelan: garis kontur yang hanyut dan tiga
-  // gumpal uap yang naik. Semuanya gradien CSS -- tanpa berkas, tanpa
-  // JavaScript, dan berhenti sendiri kalau perangkatnya minta gerakan
-  // dikurangi.
+  // Semua atributnya perlu, tidak satu pun hiasan:
+  //   muted + playsinline  browser HP menolak memutar sendiri tanpa keduanya,
+  //                        dan iOS akan membuka videonya jadi layar penuh
+  //   preload="metadata"   yang diunduh lebih dulu cuma keterangannya; berkasnya
+  //                        menyusul, dan sampai itu poster yang tampil
+  //   poster               frame pertama sebagai gambar diam -- yang dilihat
+  //                        pengunjung selama videonya belum termuat, dan yang
+  //                        tetap tampil kalau videonya gagal atau ditolak
+  //
+  // Tanpa video, hero kembali jadi cokelat dengan garis kontur seperti semula.
+  // Tidak ada animasi di sana: sebuah gerakan yang cuma "supaya bergerak" adalah
+  // hal yang pertama membuat orang ingin menutup tab.
   function heroBeranda(data) {
     const s = seksiSatu(data, 'home', 'hero');
     const judul = (s && s.judul) || 'Kopi yang baru disangrai, bukan yang lama menunggu';
     const plat = (s && s.subjudul) || 'Roastery \u00b7 Gunung Puntang, Jawa Barat';
     const teks = s && s.teks;
 
-    return '<div class="hero">' +
-        '<div class="hero-latar" aria-hidden="true">' +
-          '<span class="uap"></span><span class="uap"></span><span class="uap"></span>' +
-        '</div>' +
+    const video = urlVideo(data.basisFoto, s);
+    const poster = s && s.foto_path
+      ? urlFoto(data.basisFoto, { path: s.foto_path, lebar_tersedia: s.foto_lebar || [] }, 1600)
+      : '';
+
+    // Gambar diamnya digambar sebagai elemen sendiri, bukan cuma atribut
+    // `poster`. Atribut itu hilang begitu videonya jalan, sementara elemen ini
+    // tetap ada -- dan itulah yang tampil untuk orang yang perangkatnya minta
+    // gerakan dikurangi, karena CSS bisa menyembunyikan videonya tapi tidak bisa
+    // menghentikannya. Alamatnya sama persis dengan `poster`, jadi browser
+    // mengunduhnya sekali.
+    let latar = '';
+    if (poster) latar += '<img class="hero-media hero-diam" src="' + esc(poster) + '" alt="" decoding="async">';
+    if (video) {
+      latar += '<video class="hero-media" autoplay muted loop playsinline preload="metadata"' +
+        (poster ? ' poster="' + esc(poster) + '"' : '') + '>' +
+        '<source src="' + esc(video) + '" type="' + tipeVideo(s.video_path) + '">' +
+        '</video>';
+    }
+
+    return '<div class="hero' + (latar ? ' hero-bervideo' : '') + '">' +
+        (latar ? '<div class="hero-latar" aria-hidden="true">' + latar + '</div>' : '') +
         '<div class="wrap">' +
           '<div class="hero-teks">' +
             '<span class="plat">' + esc(plat) + '</span>' +
@@ -565,7 +601,8 @@
 
   const API = {
     esc: esc, rp: rp, slugKategori: slugKategori, ringkasan: ringkasan,
-    urlFoto: urlFoto, srcsetFoto: srcsetFoto, varianDari: varianDari, fotoDari: fotoDari,
+    urlFoto: urlFoto, srcsetFoto: srcsetFoto, urlVideo: urlVideo, tipeVideo: tipeVideo,
+    varianDari: varianDari, fotoDari: fotoDari,
     produkHabis: produkHabis, hargaTerendah: hargaTerendah,
     kategoriDaftar: kategoriDaftar,
     seksiDari: seksiDari, seksiSatu: seksiSatu, seksiTerisi: seksiTerisi,

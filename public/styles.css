@@ -373,13 +373,15 @@ td code { background: var(--hover); border: 1px solid var(--border); border-radi
 /* Pratinjau sengaja kecil: yang perlu dipastikan di sini cuma "foto yang benar
    sudah terpasang", bukan detailnya -- untuk itu ada tombol Lihat toko. */
 .seksi-pratinjau { display: flex; align-items: center; gap: 10px; }
-.seksi-pratinjau img {
+.seksi-pratinjau img,
+.seksi-pratinjau video {
   width: 84px;
   height: 84px;
   object-fit: cover;
   border-radius: 4px;
   border: 1px solid var(--border);
   display: block;
+  background: #0f172a;
 }
 
 .seksi-baris textarea { min-height: 84px; }

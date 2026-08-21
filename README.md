@@ -69,7 +69,7 @@ depan serta halaman Tentang Kami ada di `web_seksi`, satu baris per bagian:
 
 | `halaman/blok` | Bagian |
 |---|---|
-| `home/hero` | Judul besar, kalimat pembuka, foto besar, satu tombol. |
+| `home/hero` | Judul besar, kalimat pembuka, satu tombol, dan video latar. |
 | `home/cerita` | Perkenalan pendek dengan foto dan tombol ke `/tentang/`. |
 | `home/alasan` | Kartu-kartu alasan. Tanpa foto tampil sebagai pita teks. |
 | `home/testimoni` | Kutipan pembeli, nama, kota. |
@@ -85,6 +85,37 @@ topbar, bukan di salah satu halaman: satu build menerbitkan semuanya sekaligus. 
 diisi disimpan `aktif = false` dan tidak digambar sama sekali: judul tanpa isi
 terlihat seperti halaman yang rusak, sedangkan halaman yang lebih pendek hanya
 terlihat ringkas — dan itu keadaan yang jujur selama isinya memang belum ditulis.
+
+### Video latar hero
+
+Diunggah lewat `/admin` → **Halaman Depan**, tersimpan di bucket `produk` sebagai
+`web_seksi.video_path`. Tidak ada varian ukuran seperti foto: browser bisa
+menggambar ulang gambar lewat `canvas`, tapi tidak ada padanan murahnya untuk
+video, dan menyandikan ulang di browser berarti menahan tab pemiliknya beberapa
+menit. Yang dipilih pemilik itulah yang naik — jadi kompres dulu di luar.
+
+Yang penting sebelum diunggah:
+
+- **buang audionya.** Video latar wajib `muted`; suaranya tidak akan pernah
+  terdengar, dan bytenya tetap terunduh.
+- **pasang `faststart`** (`-movflags +faststart`), supaya browser bisa mulai
+  memutar sebelum berkasnya selesai turun.
+- **usahakan di bawah 5 MB.** Berkas ini diunduh tiap kali halaman depan dibuka,
+  oleh pembeli yang datang dari tautan TikTok dengan kuota sendiri.
+
+```bash
+ffmpeg -i asli.mp4 -an -c:v libx264 -vf "scale=900:-2,fps=25" -crf 33 -preset slow -movflags +faststart hero.mp4
+```
+
+**Gambar pengganti** diunggah di kotak sebelahnya dan dipakai tiga kali: sebagai
+`poster` selama videonya belum termuat, sebagai gambar diam untuk pengunjung yang
+perangkatnya minta gerakan dikurangi, dan sebagai kartu berbagi WhatsApp — yang
+tidak bisa memutar video. Pilih satu frame dari video yang sama supaya
+perpindahannya tidak terasa.
+
+Tanpa video, hero kembali jadi cokelat dengan garis konturnya. Tidak ada animasi
+di sana dengan sengaja: gerakan yang cuma "supaya bergerak" adalah hal pertama
+yang membuat orang menutup tab.
 
 Yang tidak diisi otomatis juga disengaja. Cerita, testimoni, alamat, dan tahun
 berdiri adalah fakta tentang usahanya; menebaknya berarti menaruh klaim palsu

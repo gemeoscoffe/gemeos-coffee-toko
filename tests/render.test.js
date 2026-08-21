@@ -19,7 +19,7 @@ function seksi(ubah) {
     id: 1, halaman: 'home', blok: 'hero', urutan: 0,
     judul: null, subjudul: null, teks: null,
     tombol_label: null, tombol_url: null, tombol2_label: null, tombol2_url: null,
-    foto_path: null, foto_lebar: null, aktif: true
+    foto_path: null, foto_lebar: null, video_path: null, aktif: true
   }, ubah || {});
 }
 
@@ -152,19 +152,55 @@ test('hanya tautan keluar yang membuka tab baru', function () {
   assert.match(html, /href="https:\/\/wa\.me\/620000" target="_blank" rel="noopener"/);
 });
 
-// Hero sengaja tidak berfoto. Waktu masih berfoto, ia satu-satunya bagian
-// halaman yang bisa rusak sendiri: mengganti fotonya menghapus berkas yang
-// lama, sementara halaman yang tayang masih menunjuk ke sana sampai build
-// berikutnya jalan -- dan yang pertama dilihat pengunjung jadi bingkai kosong.
-test('hero tidak memuat gambar sama sekali', function () {
-  const d = data({
-    foto: [{ id: 1, produk_id: 1, path: 'produk/1/x', lebar_tersedia: [400, 800] }],
-    seksi: [seksi({ judul: 'Judulnya', foto_path: 'seksi/1/y', foto_lebar: [400, 800] })]
-  });
-  const hero = RENDER.beranda(d).split('class="wrap"')[0];
+// Latar hero berupa video, dan tiap atributnya perlu. Tanpa `muted` dan
+// `playsinline`, browser HP menolak memutarnya sendiri -- yang tampil bukan
+// video melainkan kotak hitam dengan tombol putar di tengahnya, tepat di bagian
+// halaman yang pertama dilihat orang.
+test('video hero membawa atribut yang membuatnya boleh berjalan sendiri', function () {
+  const html = RENDER.beranda(data({
+    seksi: [seksi({ judul: 'Judulnya', video_path: 'seksi/1/video-9.mp4',
+                    foto_path: 'seksi/1/p', foto_lebar: [400, 1600] })]
+  }));
+  assert.match(html, /<video class="hero-media" autoplay muted loop playsinline preload="metadata"/);
+  assert.match(html, /<source src="[^"]*seksi\/1\/video-9\.mp4" type="video\/mp4">/);
+  assert.match(html, /class="hero hero-bervideo"/);
+});
+
+// Gambar diamnya elemen sendiri, bukan cuma atribut `poster`: atribut itu hilang
+// begitu videonya jalan, sementara elemen ini yang tetap tampil untuk orang yang
+// perangkatnya minta gerakan dikurangi -- CSS bisa menyembunyikan video, tapi
+// tidak bisa menghentikannya.
+test('gambar pengganti digambar sebagai elemen sendiri, bukan cuma atribut poster', function () {
+  const html = RENDER.beranda(data({
+    seksi: [seksi({ video_path: 'seksi/1/v.mp4', foto_path: 'seksi/1/p', foto_lebar: [400, 1600] })]
+  }));
+  assert.match(html, /<img class="hero-media hero-diam" src="[^"]*seksi\/1\/p-1600\.webp"/);
+  assert.match(html, /poster="[^"]*seksi\/1\/p-1600\.webp"/);
+});
+
+test('tanpa video, gambar pengganti saja sudah cukup jadi latar', function () {
+  const html = RENDER.beranda(data({
+    seksi: [seksi({ foto_path: 'seksi/1/p', foto_lebar: [400, 800] })]
+  }));
+  assert.match(html, /<img class="hero-media hero-diam"/);
+  assert.doesNotMatch(html, /<video/);
+});
+
+// Tanpa keduanya hero kembali polos. Yang tidak boleh terjadi adalah elemen
+// media kosong: `<video>` tanpa sumber menggambar kotak hitam.
+test('hero tanpa video dan tanpa gambar tidak menyisakan elemen media kosong', function () {
+  const hero = RENDER.beranda(data()).split('class="wrap"')[0];
+  assert.doesNotMatch(hero, /<video/);
   assert.doesNotMatch(hero, /<img/);
-  assert.doesNotMatch(hero, /seksi\/1\/y/);
-  assert.match(hero, /class="hero-latar"/);
+  assert.doesNotMatch(hero, /hero-latar/);
+  assert.doesNotMatch(hero, /hero-bervideo/);
+});
+
+test('tipe video mengikuti ekstensi berkasnya', function () {
+  assert.strictEqual(RENDER.tipeVideo('a/b/hero.mp4'), 'video/mp4');
+  assert.strictEqual(RENDER.tipeVideo('a/b/hero.webm'), 'video/webm');
+  assert.strictEqual(RENDER.tipeVideo('a/b/hero.MP4'), 'video/mp4');
+  assert.strictEqual(RENDER.tipeVideo(''), 'video/mp4');
 });
 
 test('hero memakai tulisan pemilik kalau ada, dan tetap berdiri kalau belum', function () {
