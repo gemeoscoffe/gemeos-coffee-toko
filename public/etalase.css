@@ -231,6 +231,28 @@ h3 { font-size: 20px; line-height: 1.25; letter-spacing: -0.01em; }
   display: block;
 }
 
+/* Rekamannya abu-abu, dan abu-abu di bawah tirai gelap hanya jadi kelabu keruh
+   -- terbaca seperti kaca kotor, bukan seperti pilihan.
+
+   Lapisan ini memberinya nada cokelat merek. `mix-blend-mode: color` mengambil
+   rona dan kepekatan dari lapisan ini lalu memakai terang-gelap dari rekaman di
+   bawahnya: yang berubah warnanya, bukan kecerahannya. Hasilnya monokrom cokelat
+   seperti cetakan lama. `multiply` akan menggelapkan semuanya, dan gelap justru
+   yang sedang dihindari di sini.
+
+   `isolation` mengurung campurannya di dalam kotak ini supaya tidak merembet ke
+   halaman di belakangnya. */
+.hero-bervideo .hero-latar { isolation: isolate; }
+
+.hero-bervideo .hero-latar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--sangrai);
+  mix-blend-mode: color;
+  pointer-events: none;
+}
+
 /* Tirai gelap di atas rekaman, dan menakarnya adalah seluruh pekerjaannya.
    Versi pertama 0,88 di kiri dan masih 0,34 di kanan -- cukup untuk membuat
    tulisan terbaca, dan cukup juga untuk membuat videonya tidak kelihatan sama
@@ -255,18 +277,20 @@ h3 { font-size: 20px; line-height: 1.25; letter-spacing: -0.01em; }
     linear-gradient(to top,
       var(--kertas) 0%,
       var(--kertas) 4%,
-      rgba(30, 19, 9, 0.30) 26%,
+      rgba(78, 47, 14, 0.32) 26%,
       /* Ujungnya cokelat beralpha nol, bukan kata kunci `transparent` -- yang
          itu sebenarnya hitam beralpha nol, dan peralihan ke sana melewati kabut
          kelabu yang tidak diminta siapa pun. */
-      rgba(30, 19, 9, 0) 52%),
-    /* Pita gelap di kiri, tempat tulisan berdiri. Habis sebelum setengah lebar
-       supaya sisi kanan rekaman lewat apa adanya. */
+      rgba(78, 47, 14, 0) 52%),
+    /* Pita di kiri, tempat tulisan berdiri. Warnanya cokelat sangrai yang sama
+       dengan header, bukan hitam: hitam beralpha di atas rekaman abu-abu
+       menghasilkan kelabu, dan kelabu tidak ada di palet mana pun di situs ini.
+       Habis sebelum setengah lebar supaya sisi kanan rekaman lewat apa adanya. */
     linear-gradient(to right,
-      rgba(30, 19, 9, 0.74) 0%,
-      rgba(30, 19, 9, 0.44) 26%,
-      rgba(30, 19, 9, 0.12) 52%,
-      rgba(30, 19, 9, 0) 72%);
+      rgba(62, 37, 11, 0.72) 0%,
+      rgba(78, 47, 14, 0.42) 26%,
+      rgba(106, 64, 20, 0.12) 52%,
+      rgba(106, 64, 20, 0) 72%);
 }
 
 /* Bayangan, bukan garis luar: rekaman di belakangnya berubah tiap frame, dan
