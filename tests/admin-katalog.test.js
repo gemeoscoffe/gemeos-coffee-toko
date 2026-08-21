@@ -105,12 +105,39 @@ test('urutan gilingan ikut urutan ketik, karena yang pertama jadi pilihan awal',
   assert.deepStrictEqual(Array.from(tokoDaftarGiling('Gilingan Halus, Biji')), ['Gilingan Halus', 'Biji']);
 });
 
-test('harga coret hanya muncul kalau memang diisi', function() {
+// Semua kolom varian disunting langsung di tabelnya, jadi yang diuji adalah isi
+// kotaknya. `harga_coret` kosong harus benar-benar kosong: nol di sana berarti
+// harga sebelum diskon nol rupiah, dan toko akan mencoret harga aslinya dengan
+// itu.
+test('kotak harga coret kosong kalau varian tidak sedang diskon', function() {
   pasang(ctx, 'TOKO_VARIAN', [varian({ id: 1, harga: 38000, harga_coret: 42000 })]);
-  assert.match(renderTokoVarianTable({ id: 1 }), /42\.000/);
+  assert.match(renderTokoVarianTable({ id: 1 }), /data-kolom="harga_coret" value="42000"/);
 
   pasang(ctx, 'TOKO_VARIAN', [varian({ id: 1, harga: 38000, harga_coret: null })]);
-  assert.doesNotMatch(renderTokoVarianTable({ id: 1 }), /42\.000/);
+  assert.match(renderTokoVarianTable({ id: 1 }), /data-kolom="harga_coret" value=""/);
+});
+
+// Sebelum ini hanya stok dan aktif yang bisa diubah dari tabel; sisanya berarti
+// hapus lalu tambah ulang, yang membuang stok dan urutan varian itu.
+test('tiap kolom varian punya kotak isian yang menyebut kolomnya', function() {
+  pasang(ctx, 'TOKO_VARIAN', [varian({ id: 7, sku: '11250', label_ukuran: '250 g Premium', urutan: 6 })]);
+  const html = renderTokoVarianTable({ id: 1 });
+
+  ['urutan', 'sku', 'label_ukuran', 'berat_g', 'berat_kirim_g', 'harga', 'harga_coret'].forEach(function(kolom) {
+    assert.match(html, new RegExp('data-id="7" data-kolom="' + kolom + '"'),
+      'kolom ' + kolom + ' harus bisa disunting');
+  });
+  assert.match(html, /data-kolom="sku" value="11250"/);
+  assert.match(html, /data-kolom="label_ukuran" value="250 g Premium"/);
+});
+
+// Label ukuran diketik pemilik, dan tanda kutip di dalamnya akan menutup
+// atribut `value` lebih awal -- barisnya rusak dan sisanya bocor jadi HTML.
+test('teks varian yang memuat tanda kutip tidak merusak kotak isiannya', function() {
+  pasang(ctx, 'TOKO_VARIAN', [varian({ id: 1, label_ukuran: '200 g "spesial"' })]);
+  const html = renderTokoVarianTable({ id: 1 });
+  assert.match(html, /value="200 g &quot;spesial&quot;"/);
+  assert.doesNotMatch(html, /value="200 g "spesial""/);
 });
 
 // Stok diketik langsung di tabel, jadi yang harus benar adalah isi kotaknya:

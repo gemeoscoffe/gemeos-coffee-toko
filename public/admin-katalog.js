@@ -277,7 +277,9 @@ function renderTokoKelola() {
         '<b>SKU</b> harus sama dengan SKU resep &mdash; bukan untuk stok, tapi supaya HPP dan laba pesanan ' +
         'bisa dihitung waktu masuk ke pembukuan. <b>Berat</b> adalah berat kopinya; <b>berat kirim</b> sudah ' +
         'termasuk kemasan dan dipakai menghitung ongkir. <b>Stok</b> diisi tangan: kosongkan kalau tidak ingin ' +
-        'dibatasi, isi 0 kalau habis.</p>' +
+        'dibatasi, isi 0 kalau habis. <b>Harga coret</b> adalah harga sebelum diskon dan harus lebih ' +
+        'tinggi dari harga jual &mdash; kosongkan kalau tidak sedang diskon. Semua kolom disunting ' +
+        'langsung di barisnya dan tersimpan begitu kotaknya ditinggalkan.</p>' +
       renderTokoVarianForm(p) +
       '<div id="toko-varian-table" style="margin-top:12px">' + renderTokoVarianTable(p) + '</div>' +
     '</div>' +
@@ -347,21 +349,40 @@ function renderTokoVarianForm() {
   '<p id="toko-v-status" style="margin-top:8px;font-size:13px"></p>';
 }
 
+// Satu kotak isian untuk satu kolom varian. Semua kolom memakai bentuk yang
+// sama supaya penyimpanannya juga satu jalan -- `setTokoVarianKolom` di bawah
+// yang mengurus semuanya, dan aturan per kolom tinggal di satu tempat.
+function inputVarian(v, kolom, tipe, lebar, tambahan) {
+  const isi = v[kolom];
+  return '<input class="toko-v-edit" type="' + tipe + '" data-id="' + v.id + '" data-kolom="' + kolom + '" ' +
+    'value="' + esc(isi === null || isi === undefined ? '' : (tipe === 'number' ? Number(isi) : isi)) + '" ' +
+    'style="width:' + lebar + 'px"' + (tambahan || '') + '>';
+}
+
 function renderTokoVarianTable(p) {
   const rows = tokoVarianDari(p.id);
   if (rows.length === 0) return '<p class="muted">Belum ada varian. Produk tanpa varian tidak bisa ditampilkan di toko.</p>';
 
+  // Dulu hanya Stok dan Aktif yang bisa diubah di sini; membetulkan label yang
+  // salah ketik atau harga yang berubah berarti menghapus varian lalu
+  // menambahkannya lagi -- dan yang ikut hilang adalah stok, urutan, dan
+  // hubungan barisnya dengan pesanan yang sudah pernah menyebut id itu.
+  // Sekarang tiap kolom adalah kotak isian yang menyimpan dirinya sendiri saat
+  // ditinggalkan, sama seperti kolom stok sejak awal.
   return '<div class="table-scroll"><table><thead><tr>' +
-    '<th>SKU</th><th>Ukuran</th><th class="num">Berat</th><th class="num">Berat Kirim</th>' +
+    '<th class="num">Urutan</th><th>SKU</th><th>Ukuran</th><th class="num">Berat</th><th class="num">Berat Kirim</th>' +
     '<th class="num">Harga</th><th class="num">Coret</th><th class="num">Stok</th><th>Aktif</th><th class="num">Aksi</th>' +
     '</tr></thead><tbody>' +
     rows.map(function(v) {
-      return '<tr><td><code>' + esc(v.sku) + '</code></td>' +
-        '<td>' + esc(v.label_ukuran) + (v.label_giling ? ' &middot; ' + esc(v.label_giling) : '') + '</td>' +
-        '<td class="num">' + Number(v.berat_g) + ' g</td>' +
-        '<td class="num">' + Number(v.berat_kirim_g) + ' g</td>' +
-        '<td class="num">' + fmtRp(v.harga) + '</td>' +
-        '<td class="num">' + (v.harga_coret ? fmtRp(v.harga_coret) : '<span class="muted">&ndash;</span>') + '</td>' +
+      return '<tr><td class="num">' + inputVarian(v, 'urutan', 'number', 64) + '</td>' +
+        '<td>' + inputVarian(v, 'sku', 'text', 90, ' title="Penghubung ke HPP dan resep -- harus sama dengan SKU di hpp_master"') + '</td>' +
+        '<td>' + inputVarian(v, 'label_ukuran', 'text', 150) +
+          (v.label_giling ? ' <span class="muted">&middot; ' + esc(v.label_giling) + '</span>' : '') + '</td>' +
+        '<td class="num">' + inputVarian(v, 'berat_g', 'number', 80) + '</td>' +
+        '<td class="num">' + inputVarian(v, 'berat_kirim_g', 'number', 90) + '</td>' +
+        '<td class="num">' + inputVarian(v, 'harga', 'number', 110) + '</td>' +
+        '<td class="num">' + inputVarian(v, 'harga_coret', 'number', 110,
+          ' placeholder="&ndash;" title="Harga sebelum diskon, dicoret di toko. Kosongkan kalau tidak sedang diskon."') + '</td>' +
         '<td class="num"><input class="toko-v-stok" type="number" min="0" data-id="' + v.id + '" ' +
           'value="' + (v.stok === null || v.stok === undefined ? '' : v.stok) + '" ' +
           'placeholder="&infin;" title="Kosongkan kalau tidak ingin dibatasi" style="width:80px"></td>' +
@@ -421,6 +442,11 @@ function wireTokoVarianTable() {
   // terlihat hampir habis.
   el.querySelectorAll('.toko-v-stok').forEach(function(i) {
     i.addEventListener('change', function() { setTokoVarianStok(Number(i.dataset.id), i.value); });
+  });
+  el.querySelectorAll('.toko-v-edit').forEach(function(i) {
+    i.addEventListener('change', function() {
+      setTokoVarianKolom(Number(i.dataset.id), i.dataset.kolom, i.value);
+    });
   });
 }
 
@@ -544,6 +570,85 @@ async function setTokoVarianStok(id, teks) {
   } catch (err) {
     alert('Gagal menyimpan stok: ' + err.message);
     await loadTokoPage();
+  }
+}
+
+// Aturan tiap kolom varian, di satu tempat.
+//
+// Yang dijaga bukan bentuk datanya -- database sudah menolak yang salah tipe --
+// melainkan nilai yang sah menurut database tapi salah menurut toko: harga nol,
+// berat nol, SKU kosong yang memutus hubungan ke HPP, dan `harga_coret` di
+// bawah `harga`, yang membuat toko menampilkan harga asli dicoret oleh angka
+// yang lebih kecil lengkap dengan tanda "Diskon" -- terbaca seperti harga naik.
+// Itu persis yang terjadi pada tiga varian premium 21 Agustus 2026, waktu yang
+// terisi di sana adalah harga offline.
+const KOLOM_VARIAN = {
+  urutan:       { angka: true, kosong: false, min: 0,  nama: 'Urutan' },
+  sku:          { angka: false, kosong: false,          nama: 'SKU' },
+  label_ukuran: { angka: false, kosong: false,          nama: 'Ukuran' },
+  berat_g:      { angka: true, kosong: false, lebihDari: 0, nama: 'Berat' },
+  berat_kirim_g:{ angka: true, kosong: false, lebihDari: 0, nama: 'Berat kirim' },
+  harga:        { angka: true, kosong: false, lebihDari: 0, nama: 'Harga' },
+  harga_coret:  { angka: true, kosong: true,  lebihDari: 0, nama: 'Harga coret' }
+};
+
+async function setTokoVarianKolom(id, kolom, teks) {
+  const aturan = KOLOM_VARIAN[kolom];
+  if (!aturan) return;
+
+  const v = TOKO_VARIAN.find(function(x) { return x.id === id; });
+  const bersih = String(teks).trim();
+
+  const gagal = function(pesan) { alert(pesan); loadTokoPage(); };
+
+  if (bersih === '' && !aturan.kosong) return gagal(aturan.nama + ' tidak boleh kosong.');
+
+  let nilai;
+  if (bersih === '') {
+    nilai = null;
+  } else if (aturan.angka) {
+    nilai = Number(bersih);
+    if (!Number.isFinite(nilai)) return gagal(aturan.nama + ' harus berupa angka.');
+    if (aturan.lebihDari !== undefined && nilai <= aturan.lebihDari) {
+      return gagal(aturan.nama + ' harus lebih dari ' + aturan.lebihDari + '.');
+    }
+    if (aturan.min !== undefined && nilai < aturan.min) {
+      return gagal(aturan.nama + ' tidak boleh kurang dari ' + aturan.min + '.');
+    }
+    if (kolom === 'urutan') nilai = Math.floor(nilai);
+  } else {
+    nilai = bersih;
+  }
+
+  // Harga coret adalah harga sebelum diskon, jadi harus di atas harga yang
+  // dibayar. Diperiksa dari dua arah karena keduanya bisa yang baru diketik.
+  if (v) {
+    const harga = kolom === 'harga' ? nilai : Number(v.harga);
+    const coret = kolom === 'harga_coret' ? nilai : (v.harga_coret === null ? null : Number(v.harga_coret));
+    if (coret !== null && coret !== undefined && harga !== null && coret <= harga) {
+      return gagal('Harga coret harus lebih tinggi dari harga jual -- itu harga sebelum diskon. ' +
+                   'Kosongkan kalau varian ini tidak sedang diskon.');
+    }
+  }
+
+  if (v && String(v[kolom] === null || v[kolom] === undefined ? '' : v[kolom]) === String(nilai === null ? '' : nilai)) return;
+
+  const isi = {};
+  isi[kolom] = nilai;
+
+  try {
+    await sbWrite('PATCH', 'web_varian', 'id=eq.' + id, isi);
+    if (v) v[kolom] = nilai;
+    // Urutan mengubah susunan barisnya sendiri, jadi tabelnya digambar ulang.
+    // Kolom lain tidak, dan menggambar ulang di tengah pengisian akan merebut
+    // kursor dari kotak berikutnya yang sedang dituju.
+    if (kolom === 'urutan') await loadTokoPage();
+    else renderTokoProduk();
+  } catch (err) {
+    const pesan = /idx_web_varian_unik/.test(err.message)
+      ? 'Kombinasi ukuran dan gilingan itu sudah dipakai varian lain di produk ini.'
+      : err.message;
+    gagal('Gagal menyimpan ' + aturan.nama.toLowerCase() + ': ' + pesan);
   }
 }
 
