@@ -1008,3 +1008,73 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
 .cari input:focus { outline: 2px solid var(--amber); outline-offset: 1px; border-color: transparent; }
 
 .cari-kosong { margin: 24px 0 8px; }
+
+/* ---------------------------------------------------------------------------
+   Barisan produk bergeser di halaman depan
+   --------------------------------------------------------------------------- */
+
+.geser { position: relative; }
+
+/* scroll-snap membuat barisan berhenti tepat di tepi kartu, bukan memotongnya
+   di tengah. overflow-y visible akan memaksa sumbu satunya ikut menggulir, jadi
+   dibiarkan clip supaya bayangan kartu tidak membuat batang gulir kedua. */
+.geser-rel {
+  display: grid;
+  grid-auto-flow: column;
+  /* Lebar tetap, bukan minmax: track yang boleh menyusut akan mengecilkan
+     kartunya supaya semuanya muat, dan barisan yang selalu muat tidak
+     pernah bisa digeser -- persis yang tidak diinginkan di sini. */
+  grid-auto-columns: 280px;
+  gap: 24px;
+  overflow-x: auto;
+  overflow-y: clip;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+
+.geser-rel::-webkit-scrollbar { display: none; }
+.geser-rel > .kartu { scroll-snap-align: start; }
+.geser-rel:focus-visible { outline: 2px solid var(--amber); outline-offset: 6px; }
+
+@media (max-width: 640px) {
+  .geser-rel { grid-auto-columns: 76vw; gap: 16px; }
+}
+
+.geser-panah {
+  position: absolute;
+  top: 116px;
+  z-index: 2;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--garis);
+  border-radius: 50%;
+  background: var(--kartu);
+  color: var(--tinta);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(36, 26, 17, 0.18);
+}
+
+/* display: grid di atas mengalahkan [hidden] bawaan peramban, jadi tombol
+   yang disembunyikan JavaScript tetap tergambar tanpa aturan ini. */
+.geser-panah[hidden] { display: none; }
+
+.geser-panah svg { width: 20px; height: 20px; display: block; }
+.geser-panah.kiri { left: -14px; }
+.geser-panah.kanan { right: -14px; }
+.geser-panah:hover { border-color: var(--tinta); }
+
+/* Ujung barisan: panahnya diredupkan dan dimatikan, bukan dihilangkan. Tombol
+   yang lenyap membuat tombol satunya melompat ke tempat lain. */
+.geser-panah:disabled { opacity: 0.32; cursor: default; box-shadow: none; }
+
+@media (max-width: 900px) {
+  .geser-panah { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .geser-rel { scroll-behavior: auto; }
+}

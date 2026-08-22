@@ -473,23 +473,55 @@
     '</section></div>';
   }
 
+  // Produk yang ditandai `sorot` di /admin. Selama belum ada satu pun yang
+  // ditandai, delapan produk pertama yang tampil -- perilaku halaman depan
+  // sebelum kolom itu ada. Bagian yang tiba-tiba kosong setelah pembaruan
+  // terlihat seperti kerusakan, padahal cuma belum diisi.
+  function produkSorot(data) {
+    const pilihan = data.produk.filter(function (p) { return p.sorot; });
+    return pilihan.length ? pilihan : data.produk.slice(0, 8);
+  }
+
+  // Barisan yang digeser mendatar, bukan grid. Panahnya tambahan, bukan
+  // satu-satunya jalan: barisannya digulir dengan jari di ponsel, dengan roda
+  // atau papan ketik di layar besar, dan tetap bisa digulir kalau JavaScript
+  // gagal dimuat -- yang hilang cuma tombolnya.
+  //
+  // Panahnya dikirim dalam keadaan hidden dan baru dinyalakan JavaScript, dan
+  // hanya kalau barisannya memang lebih lebar dari layarnya. Panah yang tidak
+  // menggeser apa pun membuat orang mengira halamannya rusak.
+  function sorotBeranda(data) {
+    const daftar = produkSorot(data);
+
+    return '<div class="wrap"><section id="katalog">' +
+      '<div class="kepala-bagian"><div><span class="plat">Katalog</span>' +
+        '<h2>Kopi yang kami sangrai</h2></div>' +
+        '<a class="lanjut-bagian" href="/shop/">Semua produk &rarr;</a></div>' +
+      '<div class="geser">' +
+        '<button class="geser-panah kiri" type="button" aria-label="Geser ke kiri" hidden>' +
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6 8.5 12l6 6" fill="none" ' +
+          'stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '</button>' +
+        '<div class="geser-rel" id="sorot-rel" tabindex="0" role="group" ' +
+          'aria-label="Pilihan kopi, geser mendatar">' +
+          daftar.map(function (p) { return kartu(data, p); }).join('') +
+        '</div>' +
+        '<button class="geser-panah kanan" type="button" aria-label="Geser ke kanan" hidden>' +
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6" fill="none" ' +
+          'stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '</button>' +
+      '</div>' +
+    '</section></div>';
+  }
+
   // Halaman depan: memperkenalkan, lalu menunjukkan barangnya, lalu bercerita.
   // Urutannya bukan selera -- pengunjung dari tautan TikTok belum tentu tahu ini
   // siapa, dan yang mereka cari lebih dulu adalah kopinya, bukan riwayatnya.
   function beranda(data) {
     if (data.produk.length === 0 && !seksiTerisi(seksiSatu(data, 'home', 'hero'))) return kosongTotal();
 
-    const sorot = data.produk.slice(0, 8);
-
     return heroBeranda(data) +
-      (data.produk.length
-        ? '<div class="wrap"><section id="katalog">' +
-            '<div class="kepala-bagian"><div><span class="plat">Katalog</span>' +
-              '<h2>Kopi yang kami sangrai</h2></div>' +
-              '<a class="lanjut-bagian" href="/shop/">Semua produk &rarr;</a></div>' +
-            '<div class="grid">' + sorot.map(function (p) { return kartu(data, p); }).join('') + '</div>' +
-          '</section></div>'
-        : '') +
+      (data.produk.length ? sorotBeranda(data) : '') +
       ceritaBeranda(data) +
       alasanBeranda(data) +
       testimoniBeranda(data) +
@@ -650,7 +682,7 @@
     varianDari: varianDari, fotoDari: fotoDari,
     produkHabis: produkHabis, hargaTerendah: hargaTerendah,
     kategoriDaftar: kategoriDaftar, produkKategori: produkKategori,
-    kataCari: kataCari,
+    kataCari: kataCari, produkSorot: produkSorot,
     kategoriProduk: kategoriProduk,
     seksiDari: seksiDari, seksiSatu: seksiSatu, seksiTerisi: seksiTerisi,
     beranda: beranda, shop: shop, tentang: tentang, produk: produk,

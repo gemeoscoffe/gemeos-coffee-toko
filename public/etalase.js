@@ -199,4 +199,50 @@
     const awal = new URL(window.location.href).searchParams.get('q');
     if (awal) { kotakCari.value = awal; saring(); }
   }
+  // Panah barisan produk di halaman depan.
+  //
+  // Barisannya sudah bisa digulir tanpa berkas ini -- dengan jari, roda, atau
+  // papan ketik. Yang ditambahkan di sini cuma dua tombol, dan tombolnya baru
+  // muncul kalau barisannya memang lebih lebar dari layar. Panah yang tidak
+  // menggeser apa pun membuat orang mengira halamannya rusak.
+  const rel = document.getElementById('sorot-rel');
+  if (rel) {
+    const kiri = rel.parentElement.querySelector('.geser-panah.kiri');
+    const kanan = rel.parentElement.querySelector('.geser-panah.kanan');
+
+    // Satu langkah = satu kartu, diukur dari kartu yang benar-benar ada supaya
+    // tidak perlu menebak lebarnya di tiap ukuran layar.
+    function langkah() {
+      const k = rel.querySelector('.kartu');
+      if (!k) return rel.clientWidth;
+      const jarak = parseFloat(getComputedStyle(rel).columnGap) || 0;
+      return k.getBoundingClientRect().width + jarak;
+    }
+
+    // Sisa geser yang lebih kecil dari ini dianggap tidak ada. Barisan yang
+    // hampir muat masih bisa digeser beberapa piksel, dan panah yang cuma
+    // menggeser sejumput itu terasa rusak, bukan terasa berfungsi.
+    const AMBANG_GESER = 48;
+
+    function perbarui() {
+      const bisaGeser = rel.scrollWidth - rel.clientWidth > AMBANG_GESER;
+      kiri.hidden = kanan.hidden = !bisaGeser;
+      if (!bisaGeser) return;
+      // Satu piksel toleransi: lebar hasil hitungan peramban jarang bulat, dan
+      // tanpa itu panah kanan tidak pernah mati di ujung.
+      kiri.disabled = rel.scrollLeft <= 1;
+      kanan.disabled = rel.scrollLeft >= rel.scrollWidth - rel.clientWidth - 1;
+    }
+
+    kiri.addEventListener('click', function () { rel.scrollLeft -= langkah(); });
+    kanan.addEventListener('click', function () { rel.scrollLeft += langkah(); });
+    rel.addEventListener('scroll', perbarui, { passive: true });
+    window.addEventListener('resize', perbarui, { passive: true });
+
+    // Foto kartu dimuat malas, jadi scrollWidth masih bisa bertambah setelah
+    // halaman selesai dibaca; tanpa pemeriksaan ulang ini panahnya kadang
+    // tidak pernah muncul di sambungan yang lambat.
+    window.addEventListener('load', perbarui);
+    perbarui();
+  }
 })();

@@ -304,7 +304,7 @@ function renderTokoProduk() {
 
   el.innerHTML = '<div class="table-scroll"><table><thead><tr>' +
     '<th>Produk</th><th>Kategori</th><th class="num">Varian</th><th class="num">Stok Terendah</th>' +
-    '<th>Tampil di Toko</th><th class="num">Aksi</th></tr></thead><tbody>' +
+    '<th>Sorot di Beranda</th><th>Tampil di Toko</th><th class="num">Aksi</th></tr></thead><tbody>' +
     TOKO_PRODUK.map(function(p) {
       const varian = tokoVarianDari(p.id);
       return '<tr' + (p.id === TOKO_PILIH ? ' class="baris-aktif"' : '') + '>' +
@@ -312,6 +312,8 @@ function renderTokoProduk() {
         '<td>' + tokoKategoriSel(p.id) + '</td>' +
         '<td class="num">' + varian.length + '</td>' +
         '<td class="num">' + (varian.length ? tokoStokSel(tokoStokTerendah(p.id)) : '<span class="muted">&ndash;</span>') + '</td>' +
+        '<td><label class="toko-switch"><input type="checkbox" class="toko-sorot" data-id="' + p.id + '"' +
+          (p.sorot ? ' checked' : '') + '> ' + (p.sorot ? 'Disorot' : 'Tidak') + '</label></td>' +
         '<td><label class="toko-switch"><input type="checkbox" class="toko-aktif" data-id="' + p.id + '"' +
           (p.aktif ? ' checked' : '') + '> ' + (p.aktif ? 'Tampil' : 'Disembunyikan') + '</label></td>' +
         '<td class="num"><button class="btn-secondary toko-kelola" data-id="' + p.id + '">Kelola</button> ' +
@@ -328,6 +330,12 @@ function renderTokoProduk() {
   el.querySelectorAll('.toko-hapus').forEach(function(b) {
     b.addEventListener('click', function() { hapusTokoProduk(Number(b.dataset.id)); });
   });
+  document.querySelectorAll('.toko-sorot').forEach(function(box) {
+    box.addEventListener('change', function() {
+      setTokoSorot(Number(this.dataset.id), this.checked);
+    });
+  });
+
   el.querySelectorAll('.toko-aktif').forEach(function(c) {
     c.addEventListener('change', function() { setTokoAktif(Number(c.dataset.id), c.checked); });
   });
@@ -367,6 +375,22 @@ async function tambahTokoProduk() {
 function tokoStatus(el, ok, pesan) {
   el.textContent = (ok ? '✅ ' : '❌ ') + pesan;
   el.style.color = ok ? 'var(--green)' : 'var(--red)';
+}
+
+// Produk yang disorot muncul di barisan bergeser halaman depan. Selama belum
+// ada satu pun yang disorot, halaman depan menampilkan delapan produk pertama
+// -- jadi mematikan semuanya tidak mengosongkan bagian itu, hanya
+// mengembalikannya ke urutan katalog.
+async function setTokoSorot(id, sorot) {
+  const status = document.getElementById('toko-produk-status');
+  try {
+    await sbWrite('PATCH', 'web_produk', 'id=eq.' + id, { sorot: sorot });
+    tokoStatus(status, true, sorot ? 'Disorot di halaman depan.' : 'Tidak lagi disorot.');
+    await loadTokoPage();
+  } catch (err) {
+    tokoStatus(status, false, err.message);
+    await loadTokoPage();
+  }
 }
 
 async function setTokoAktif(id, aktif) {

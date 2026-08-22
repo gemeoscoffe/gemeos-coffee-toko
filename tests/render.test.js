@@ -428,3 +428,43 @@ test('produk tanpa keterangan tetap bisa dicari lewat namanya', function () {
   });
   assert.strictEqual(RENDER.kataCari(d, d.produk[0]), 'kopi polos');
 });
+
+// Barisan produk di halaman depan. Yang penting bukan penyorotannya, tapi
+// perilaku waktu belum ada yang disorot: bagian yang mendadak kosong setelah
+// migrasi berjalan terlihat seperti kerusakan, padahal cuma belum diisi.
+test('halaman depan menampilkan delapan produk pertama selama belum ada yang disorot', function () {
+  const banyak = [];
+  for (let i = 1; i <= 12; i++) {
+    banyak.push({ id: i, slug: 'k' + i, nama: 'Kopi ' + i, origin: null, proses: null, roast: null,
+                  altitude: null, varietas: null, catatan_rasa: null, ringkas: null, deskripsi: null,
+                  opsi_giling: [], sorot: false });
+  }
+  const d = data({ produk: banyak, varian: [], produkKategori: [] });
+  assert.strictEqual(RENDER.produkSorot(d).length, 8);
+  assert.strictEqual(RENDER.produkSorot(d)[0].nama, 'Kopi 1');
+});
+
+test('kalau ada yang disorot, hanya yang disorot yang tampil', function () {
+  const d = data({
+    produk: [
+      { id: 1, slug: 'a', nama: 'Kopi A', origin: null, proses: null, roast: null, altitude: null,
+        varietas: null, catatan_rasa: null, ringkas: null, deskripsi: null, opsi_giling: [], sorot: false },
+      { id: 2, slug: 'b', nama: 'Kopi B', origin: null, proses: null, roast: null, altitude: null,
+        varietas: null, catatan_rasa: null, ringkas: null, deskripsi: null, opsi_giling: [], sorot: true }
+    ],
+    varian: [], produkKategori: []
+  });
+  assert.deepStrictEqual(Array.from(RENDER.produkSorot(d)).map(function (p) { return p.nama; }), ['Kopi B']);
+  const html = RENDER.beranda(d);
+  assert.match(html, /Kopi B/);
+  assert.doesNotMatch(html, /Kopi A/);
+});
+
+test('barisan halaman depan digambar sebagai rel geser, bukan grid', function () {
+  const html = RENDER.beranda(data());
+  assert.match(html, /class="geser-rel"/);
+  assert.match(html, /id="sorot-rel"/);
+  // Panahnya harus terkirim dalam keadaan hidden: kalau tidak, halaman tanpa
+  // JavaScript memasang dua tombol yang tidak menggeser apa pun.
+  assert.match(html, /class="geser-panah kiri" type="button" aria-label="[^"]*" hidden/);
+});
