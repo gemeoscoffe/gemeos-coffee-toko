@@ -494,8 +494,8 @@
     const daftar = produkSorot(data);
 
     return '<div class="wrap"><section id="katalog">' +
-      '<div class="kepala-bagian"><div><span class="plat">Katalog</span>' +
-        '<h2>Kopi yang kami sangrai</h2></div>' +
+      '<div class="kepala-bagian"><div>' +
+        '<h2>Produk terlaris</h2></div>' +
         '<a class="lanjut-bagian" href="/shop/">Semua produk &rarr;</a></div>' +
       '<div class="geser">' +
         '<button class="geser-panah kiri" type="button" aria-label="Geser ke kiri" hidden>' +

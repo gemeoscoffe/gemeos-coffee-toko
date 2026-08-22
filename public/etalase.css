@@ -1021,11 +1021,17 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
 .geser-rel {
   display: grid;
   grid-auto-flow: column;
-  /* Lebar tetap, bukan minmax: track yang boleh menyusut akan mengecilkan
-     kartunya supaya semuanya muat, dan barisan yang selalu muat tidak
-     pernah bisa digeser -- persis yang tidak diinginkan di sini. */
-  grid-auto-columns: 280px;
-  gap: 24px;
+  /* Lebarnya dihitung supaya sejumlah bulat kartu pas mengisi layar, bukan
+     ditetapkan 280px. Dengan lebar tetap, empat kartu selebar 280px meleset 40
+     piksel dari wadahnya: kartu terakhir terpotong selamanya, dan sisa geser
+     yang cuma 40 piksel itu di bawah ambang munculnya panah -- jadi tidak ada
+     yang terlihat bisa menggesernya. Yang terlihat cuma gambar yang tercukur.
+     Dengan rumus ini barisan hanya melebihi layar kalau produknya memang lebih
+     banyak dari yang muat, dan saat itulah panahnya pantas muncul. */
+  --per-layar: 4;
+  --sela: 24px;
+  grid-auto-columns: calc((100% - (var(--per-layar) - 1) * var(--sela)) / var(--per-layar));
+  gap: var(--sela);
   overflow-x: auto;
   overflow-y: clip;
   scroll-snap-type: x mandatory;
@@ -1038,8 +1044,14 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
 .geser-rel > .kartu { scroll-snap-align: start; }
 .geser-rel:focus-visible { outline: 2px solid var(--amber); outline-offset: 6px; }
 
-@media (max-width: 640px) {
-  .geser-rel { grid-auto-columns: 76vw; gap: 16px; }
+@media (max-width: 1100px) { .geser-rel { --per-layar: 3; } }
+@media (max-width: 820px)  { .geser-rel { --per-layar: 2; } }
+
+/* Di ponsel sengaja 1,15 kartu: potongan kartu berikutnya yang mengintip di
+   tepi adalah satu-satunya petunjuk bahwa barisan ini bisa digeser, karena
+   panahnya memang tidak digambar di layar sekecil itu. */
+@media (max-width: 560px) {
+  .geser-rel { --per-layar: 1.15; --sela: 16px; }
 }
 
 .geser-panah {
