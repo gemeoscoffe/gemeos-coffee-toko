@@ -16,19 +16,34 @@
  * terbaca adalah ongkos yang mereka tidak pernah minta.
  */
 
+/* Dua palet, satu tempat. Nilai warnanya hanya ditulis sekali di sini; blok
+   pemilih tema di bawahnya cuma menyambungkan nama --terang-* atau --gelap-*
+   ke nama yang dipakai seluruh berkas. Sebelumnya nilai gelapnya ditulis ulang
+   di dalam @media, dan itu cara termudah dua palet jadi berbeda diam-diam. */
 :root {
-  --kertas:    #FAF6F0;   /* putih hangat: logonya berlatar putih, jadi fotonya menyatu */
-  --kartu:     #FFFFFF;
-  --naik:      #F0E7DB;   /* permukaan yang sedikit terangkat */
-  --tinta:     #241A11;
-  --kabut:     #6F6155;   /* teks sekunder, tetap lolos kontras 4.5:1 */
-  --garis:     rgba(36, 26, 17, 0.14);
+  --terang-kertas:    #FAF6F0;   /* putih hangat: logonya berlatar putih, jadi fotonya menyatu */
+  --terang-kartu:     #FFFFFF;
+  --terang-naik:      #F0E7DB;   /* permukaan yang sedikit terangkat */
+  --terang-tinta:     #241A11;
+  --terang-kabut:     #6F6155;   /* teks sekunder, tetap lolos kontras 4.5:1 */
+  --terang-garis:     rgba(36, 26, 17, 0.14);
+  --terang-sangrai:     #6A4014; /* garis dan tulisan di logo */
+  --terang-sangrai-tua: #4E2F0E;
+  --terang-susu:        #FBF3E8; /* teks di atas cokelat sangrai */
+  --terang-amber:       #A76B2D; /* isi biji di logo */
+  --terang-amber-muda:  #D3A468; /* amber yang terbaca di atas cokelat tua */
 
-  --sangrai:     #6A4014;   /* garis dan tulisan di logo */
-  --sangrai-tua: #4E2F0E;
-  --susu:        #FBF3E8;   /* teks di atas cokelat sangrai */
-  --amber:       #A76B2D;   /* isi biji di logo */
-  --amber-muda:  #D3A468;   /* amber yang terbaca di atas cokelat tua */
+  --gelap-kertas:    #14100C;
+  --gelap-kartu:     #1D1712;
+  --gelap-naik:      #271F17;
+  --gelap-tinta:     #F5EEE4;
+  --gelap-kabut:     #A79A8B;
+  --gelap-garis:     rgba(245, 238, 228, 0.14);
+  --gelap-sangrai:     #3B2209;
+  --gelap-sangrai-tua: #2A1806;
+  --gelap-susu:        #FBF3E8;
+  --gelap-amber:       #C98A43;
+  --gelap-amber-muda:  #D3A468;
 
   --serif: Georgia, "Times New Roman", "Noto Serif", serif;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -37,21 +52,55 @@
   --lebar: 1200px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --kertas:    #14100C;
-    --kartu:     #1D1712;
-    --naik:      #271F17;
-    --tinta:     #F5EEE4;
-    --kabut:     #A79A8B;
-    --garis:     rgba(245, 238, 228, 0.14);
+/* Tiga keadaan, bukan dua: terang, gelap, dan "ikut setelan perangkat" -- yang
+   terakhir itu bawaannya, dan ditandai dengan tidak adanya atribut data-tema
+   sama sekali. Pengunjung yang belum pernah menekan tombol tema tidak boleh
+   dipaksa ke salah satu pilihan hanya karena tombolnya ada. */
+:root, :root[data-tema="terang"] {
+  --kertas:      var(--terang-kertas);
+  --kartu:       var(--terang-kartu);
+  --naik:        var(--terang-naik);
+  --tinta:       var(--terang-tinta);
+  --kabut:       var(--terang-kabut);
+  --garis:       var(--terang-garis);
+  --sangrai:     var(--terang-sangrai);
+  --sangrai-tua: var(--terang-sangrai-tua);
+  --susu:        var(--terang-susu);
+  --amber:       var(--terang-amber);
+  --amber-muda:  var(--terang-amber-muda);
+  color-scheme: light;
+}
 
-    --sangrai:     #3B2209;
-    --sangrai-tua: #2A1806;
-    --susu:        #FBF3E8;
-    --amber:       #C98A43;
-    --amber-muda:  #D3A468;
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="terang"]) {
+    --kertas:      var(--gelap-kertas);
+    --kartu:       var(--gelap-kartu);
+    --naik:        var(--gelap-naik);
+    --tinta:       var(--gelap-tinta);
+    --kabut:       var(--gelap-kabut);
+    --garis:       var(--gelap-garis);
+    --sangrai:     var(--gelap-sangrai);
+    --sangrai-tua: var(--gelap-sangrai-tua);
+    --susu:        var(--gelap-susu);
+    --amber:       var(--gelap-amber);
+    --amber-muda:  var(--gelap-amber-muda);
+    color-scheme: dark;
   }
+}
+
+:root[data-tema="gelap"] {
+  --kertas:      var(--gelap-kertas);
+  --kartu:       var(--gelap-kartu);
+  --naik:        var(--gelap-naik);
+  --tinta:       var(--gelap-tinta);
+  --kabut:       var(--gelap-kabut);
+  --garis:       var(--gelap-garis);
+  --sangrai:     var(--gelap-sangrai);
+  --sangrai-tua: var(--gelap-sangrai-tua);
+  --susu:        var(--gelap-susu);
+  --amber:       var(--gelap-amber);
+  --amber-muda:  var(--gelap-amber-muda);
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -830,3 +879,109 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
 .tulisan-halaman ul { margin: 0 0 18px; padding-left: 20px; color: var(--kabut); }
 .tulisan-halaman li { margin-bottom: 7px; }
 .tulisan-halaman .tombol { margin-top: 4px; }
+
+/* ---------------------------------------------------------------------------
+   Tombol melayang: WhatsApp dan kembali ke atas
+   --------------------------------------------------------------------------- */
+
+/* Jarak dari tepi memakai env(safe-area-inset-*) supaya di iPhone tombolnya
+   tidak duduk di bawah batang gestur. */
+.apung {
+  position: fixed;
+  z-index: 60;
+  right: calc(18px + env(safe-area-inset-right, 0px));
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.apung > * {
+  width: 52px;
+  height: 52px;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(36, 26, 17, 0.28);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.apung > *:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(36, 26, 17, 0.34); }
+.apung > *:active { transform: translateY(0); }
+
+.apung svg { width: 27px; height: 27px; fill: currentColor; display: block; }
+
+/* Hijau WhatsApp, bukan warna toko. Tombol ini dikenali dari warnanya sebelum
+   dibaca, dan mengecatnya cokelat justru membuatnya tidak lagi bermakna. */
+.apung-wa { background: #25D366; color: #FFFFFF; }
+.apung-wa:hover { background: #1FBE5A; }
+
+/* --tinta dan --kertas keduanya berbalik di mode gelap, jadi tombolnya ikut
+   berbalik: gelap di atas halaman terang, terang di atas halaman gelap.
+   Memakai --susu untuk panahnya sempat membuat tombol ini krem di atas
+   krem -- warna itu tidak berbalik, dan di mode gelap panahnya hilang. */
+.apung-atas { background: var(--tinta); color: var(--kertas); }
+
+/* Tersembunyi sampai halaman tergulir. visibility, bukan sekadar opacity:
+   tombol yang tidak terlihat tapi masih bisa di-Tab adalah jebakan bagi
+   pengguna papan ketik dan pembaca layar. */
+.apung-atas {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+}
+
+.apung-atas.tampil { opacity: 1; visibility: visible; transform: translateY(0); }
+
+@media (max-width: 600px) {
+  .apung { right: calc(14px + env(safe-area-inset-right, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); gap: 10px; }
+  .apung > * { width: 48px; height: 48px; }
+  .apung svg { width: 25px; height: 25px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apung > *, .apung-atas { transition: none; }
+  .apung > *:hover { transform: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Tombol tema
+   --------------------------------------------------------------------------- */
+
+.tema {
+  margin-left: 4px;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--garis);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--kabut);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.tema:hover { color: var(--tinta); border-color: var(--tinta); }
+.tema svg { width: 16px; height: 16px; display: block; }
+
+/* Ikon yang tampil adalah tema yang akan dituju kalau tombolnya ditekan, bukan
+   tema yang sedang berlaku -- tombol menggambarkan akibatnya, bukan keadaannya.
+   Aturannya harus mengikuti persis tiga keadaan palet di atas, kalau tidak,
+   pengunjung bermode gelap melihat ikon bulan yang tidak mengubah apa pun. */
+.tema .ikon-gelap { display: block; }
+.tema .ikon-terang { display: none; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="terang"]) .tema .ikon-gelap { display: none; }
+  :root:not([data-tema="terang"]) .tema .ikon-terang { display: block; }
+}
+
+:root[data-tema="gelap"] .tema .ikon-gelap { display: none; }
+:root[data-tema="gelap"] .tema .ikon-terang { display: block; }
+:root[data-tema="terang"] .tema .ikon-gelap { display: block; }
+:root[data-tema="terang"] .tema .ikon-terang { display: none; }
