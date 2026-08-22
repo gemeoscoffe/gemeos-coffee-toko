@@ -18,6 +18,7 @@ const tokoStokTerendah = ambil(ctx, 'tokoStokTerendah');
 const renderTokoVarianTable = ambil(ctx, 'renderTokoVarianTable');
 const tokoDaftarGiling = ambil(ctx, 'tokoDaftarGiling');
 const renderTokoFotoList = ambil(ctx, 'renderTokoFotoList');
+const tokoKategoriTerpakai = ambil(ctx, 'tokoKategoriTerpakai');
 
 function varian(isi) {
   return Object.assign({
@@ -170,4 +171,37 @@ test('foto pertama ditandai sebagai gambar utama', function() {
 test('produk tanpa foto tidak menampilkan grid kosong', function() {
   pasang(ctx, 'TOKO_FOTO', []);
   assert.match(renderTokoFotoList({ id: 1 }), /Belum ada foto/);
+});
+
+// Kategori tidak punya tabel sendiri: yang ada hanya teks di tiap produk, dan
+// chip di /shop/ dibangun dari nilai yang berbeda-beda. Artinya satu salah
+// ketik menambah kategori baru tanpa berbunyi, dan daftar saran inilah satu-
+// satunya yang mencegahnya.
+test('daftar kategori berisi yang sudah dipakai, tanpa kembar dan urut', function() {
+  pasang(ctx, 'TOKO_PRODUK', [
+    { id: 1, kategori: 'Specialty' },
+    { id: 2, kategori: 'Commodity Blend' },
+    { id: 3, kategori: 'Specialty' },
+    { id: 4, kategori: 'Arabika' }
+  ]);
+  assert.deepStrictEqual(Array.from(tokoKategoriTerpakai()),
+    ['Arabika', 'Commodity Blend', 'Specialty']);
+});
+
+test('kategori kosong atau berisi spasi saja tidak ikut jadi saran', function() {
+  pasang(ctx, 'TOKO_PRODUK', [
+    { id: 1, kategori: 'Arabika' },
+    { id: 2, kategori: '' },
+    { id: 3, kategori: '   ' },
+    { id: 4, kategori: null }
+  ]);
+  assert.deepStrictEqual(Array.from(tokoKategoriTerpakai()), ['Arabika']);
+});
+
+test('spasi di ujung tidak membuat kategori kembar', function() {
+  pasang(ctx, 'TOKO_PRODUK', [
+    { id: 1, kategori: 'Specialty' },
+    { id: 2, kategori: '  Specialty  ' }
+  ]);
+  assert.deepStrictEqual(Array.from(tokoKategoriTerpakai()), ['Specialty']);
 });

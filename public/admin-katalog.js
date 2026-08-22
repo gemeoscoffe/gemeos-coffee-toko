@@ -115,12 +115,43 @@ function tokoStokSel(nilai) {
   return esc(String(nilai)) + ' unit';
 }
 
+// Kategori bukan tabel tersendiri: yang ada hanyalah nilai teks di tiap produk,
+// dan barisan chip di /shop/ dibangun dari nilai-nilai yang berbeda. Bentuk itu
+// sengaja dipertahankan -- menambah kategori berarti mengetiknya, tanpa layar
+// pengelolaan tersendiri yang harus diurus.
+//
+// Harganya satu: salah ketik tidak berbunyi. "Speciality" dan "Specialty"
+// menjadi dua chip di toko, dan tidak ada yang memberitahu. Datalist ini
+// menutup celah itu tanpa mengubah apa pun di database -- yang sudah dipakai
+// muncul sebagai saran, yang baru tetap boleh diketik.
+function tokoKategoriTerpakai() {
+  const keluar = [];
+  TOKO_PRODUK.forEach(function(p) {
+    const k = (p.kategori || '').trim();
+    if (k && keluar.indexOf(k) === -1) keluar.push(k);
+  });
+  return keluar.sort(function(a, b) { return a.localeCompare(b, 'id'); });
+}
+
+function isiDatalistKategori() {
+  document.querySelectorAll('datalist#toko-kategori-ada, datalist.toko-kategori-ada')
+    .forEach(function(dl) {
+      dl.innerHTML = tokoKategoriTerpakai().map(function(k) {
+        return '<option value="' + esc(k) + '">';
+      }).join('');
+    });
+}
+
 // ---------------------------------------------------------------------------
 // Daftar produk
 // ---------------------------------------------------------------------------
 
 function renderTokoProduk() {
   const el = document.getElementById('toko-produk-table');
+
+  // Digambar ulang setiap daftar berubah: kategori baru yang barusan diketik
+  // harus langsung jadi saran, bukan setelah halaman dimuat ulang.
+  isiDatalistKategori();
 
   if (TOKO_PRODUK.length === 0) {
     el.innerHTML = '<p class="muted">Belum ada produk di katalog toko. Tambahkan yang pertama di atas.</p>';
@@ -294,6 +325,10 @@ function renderTokoKelola() {
       '<div id="toko-foto-list" style="margin-top:12px">' + renderTokoFotoList(p) + '</div>' +
     '</div>';
 
+  // Datalist di form detail baru saja dibuat ulang bersama seluruh panel, jadi
+  // isinya kosong sampai diisi lagi di sini.
+  isiDatalistKategori();
+
   wireTokoKelola(p);
 }
 
@@ -302,10 +337,18 @@ function renderTokoDetailForm(p) {
     return '<div style="' + (lebar || 'flex:1;min-width:180px') + '"><label>' + label + '</label>' +
       '<input id="' + id + '" value="' + esc(nilai || '') + '"></div>';
   };
+  // Sama seperti isi(), ditambah daftar saran. Datalist-nya dibuat di sini juga
+  // karena form ini dirakit ulang tiap kali produk lain dipilih, dan id yang
+  // sama tidak boleh muncul dua kali di halaman.
+  const isiSaran = function(id, label, nilai, lebar, dl) {
+    return '<div style="' + (lebar || 'flex:1;min-width:180px') + '"><label>' + label + '</label>' +
+      '<input id="' + id + '" list="' + dl + '-e" value="' + esc(nilai || '') + '">' +
+      '<datalist id="' + dl + '-e" class="toko-kategori-ada"></datalist></div>';
+  };
   return '<div class="row">' +
       isi('toko-e-nama', 'Nama Produk', p.nama) +
       isi('toko-e-slug', 'Alamat (slug)', p.slug, 'width:200px') +
-      isi('toko-e-kategori', 'Kategori', p.kategori, 'width:160px') +
+      isiSaran('toko-e-kategori', 'Kategori', p.kategori, 'width:160px', 'toko-kategori-ada') +
       '<div style="width:110px"><label>Urutan</label><input id="toko-e-urutan" type="number" value="' + (p.urutan || 0) + '"></div>' +
     '</div>' +
     '<div class="row">' +
