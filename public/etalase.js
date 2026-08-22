@@ -151,4 +151,52 @@
     // data-tema belum ada, CSS yang mengikuti setelan perangkat, dan ia sudah
     // berubah sendiri saat ponsel berpindah ke mode gelap di malam hari.
   }
+  // Pencarian katalog. Terjadi seluruhnya di peramban atas kartu yang memang
+  // sudah ada di halaman -- tidak ada indeks, tidak ada permintaan ke server,
+  // dan hasilnya berubah selagi diketik. Katalog toko ini berisi belasan
+  // produk; membangun indeks untuk itu lebih mahal daripada memindainya.
+  //
+  // Kalau berkas ini gagal dimuat, kotak carinya tetap tersembunyi dan katalog
+  // tampil utuh. Kotak cari yang tidak bisa mencari lebih buruk daripada tidak
+  // ada kotak sama sekali.
+  const kotakCari = document.getElementById('cari-produk');
+  const gridKatalog = document.getElementById('grid-katalog');
+  if (kotakCari && gridKatalog) {
+    const kartu = Array.prototype.slice.call(gridKatalog.querySelectorAll('.kartu'));
+    const hitung = document.getElementById('cari-hitung');
+    const kosong = document.getElementById('cari-kosong');
+    kotakCari.closest('.cari').hidden = false;
+
+    function saring() {
+      // Dipecah per spasi supaya "puntang 1 kg" tetap ketemu walau kedua kata
+      // itu tidak pernah bersebelahan di teks kartunya.
+      const kata = kotakCari.value.toLowerCase().split(/\s+/).filter(Boolean);
+      let tampil = 0;
+
+      kartu.forEach(function (k) {
+        const teks = k.dataset.cari || '';
+        const cocok = kata.every(function (x) { return teks.indexOf(x) !== -1; });
+        k.hidden = !cocok;
+        if (cocok) tampil++;
+      });
+
+      if (hitung) hitung.textContent = tampil + ' produk';
+      if (kosong) kosong.hidden = tampil > 0;
+    }
+
+    kotakCari.addEventListener('input', saring);
+
+    // Pencarian ikut ke alamat supaya hasilnya bisa dibagikan dan tidak hilang
+    // waktu halaman dimuat ulang. replaceState, bukan pushState: tiap huruf
+    // yang diketik tidak pantas jadi satu langkah di tombol Kembali.
+    kotakCari.addEventListener('input', function () {
+      const url = new URL(window.location.href);
+      if (kotakCari.value) url.searchParams.set('q', kotakCari.value);
+      else url.searchParams.delete('q');
+      history.replaceState(null, '', url);
+    });
+
+    const awal = new URL(window.location.href).searchParams.get('q');
+    if (awal) { kotakCari.value = awal; saring(); }
+  }
 })();

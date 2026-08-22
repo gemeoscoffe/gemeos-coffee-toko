@@ -985,3 +985,26 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
 :root[data-tema="gelap"] .tema .ikon-terang { display: block; }
 :root[data-tema="terang"] .tema .ikon-gelap { display: block; }
 :root[data-tema="terang"] .tema .ikon-terang { display: none; }
+
+/* ---------------------------------------------------------------------------
+   Kotak cari di katalog
+   --------------------------------------------------------------------------- */
+
+.cari { margin: 18px 0 4px; }
+
+.cari input {
+  width: 100%;
+  max-width: 420px;
+  padding: 11px 14px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--tinta);
+  background: var(--kartu);
+  border: 1px solid var(--garis);
+  border-radius: 999px;
+}
+
+.cari input::placeholder { color: var(--kabut); }
+.cari input:focus { outline: 2px solid var(--amber); outline-offset: 1px; border-color: transparent; }
+
+.cari-kosong { margin: 24px 0 8px; }

@@ -123,6 +123,20 @@
   // Potongan yang dipakai berulang
   // -------------------------------------------------------------------------
 
+  // Semua kata yang boleh mencocokkan sebuah kartu saat dicari, disatukan ke
+  // satu atribut dan sudah dikecilkan hurufnya. Pencocokannya terjadi di
+  // peramban dan katalognya kecil, jadi tidak ada indeks, tidak ada permintaan
+  // ke server, dan hasilnya muncul selagi diketik.
+  //
+  // Ukuran ikut dimasukkan meski tidak tertulis di kartu: "1 kg" adalah salah
+  // satu hal yang paling sering diketik orang, dan kartunya harus tetap ketemu.
+  function kataCari(data, p) {
+    const bagian = [p.nama, p.origin, p.proses, p.roast, p.varietas, p.catatan_rasa, p.ringkas];
+    kategoriProduk(data, p.id).forEach(function (k) { bagian.push(k.nama); });
+    varianDari(data, p.id).forEach(function (v) { bagian.push(v.label_ukuran); });
+    return bagian.filter(Boolean).join(' ').toLowerCase();
+  }
+
   // Kartu tidak menyebut ukuran. Daftar berat cuma berguna waktu orang sudah
   // memilih kopinya, dan itu terjadi di halaman produk; di grid ia memanjang
   // sampai delapan potong sehingga kartunya jadi tidak sama tinggi.
@@ -133,7 +147,8 @@
     const asal = [p.origin, p.proses, p.roast].filter(Boolean).join(' · ');
 
     return '' +
-      '<a class="kartu" href="/produk/' + esc(p.slug) + '/">' +
+      '<a class="kartu" href="/produk/' + esc(p.slug) + '/" data-cari="' +
+        esc(kataCari(data, p)) + '">' +
         '<div class="foto">' +
           (habis ? '<span class="tanda habis">Habis</span>'
                  : diskon ? '<span class="tanda sale">Diskon</span>' : '') +
@@ -302,8 +317,15 @@
       '<section id="katalog">' +
         '<div class="kepala-bagian"><div><span class="plat">Katalog</span><h2>' + esc(judul) + '</h2></div></div>' +
         saringan(data, kategoriAktif) +
-        '<p class="hitung plat">' + daftar.length + ' produk</p>' +
-        '<div class="grid">' +
+        // hidden sampai JavaScript menyalakannya: kotak cari yang tidak bisa
+        // mencari lebih buruk daripada kotak yang tidak ada.
+        '<div class="cari" hidden>' +
+          '<input type="search" id="cari-produk" placeholder="Cari kopi, ukuran, atau catatan rasa" ' +
+            'aria-label="Cari produk" autocomplete="off">' +
+        '</div>' +
+        '<p class="hitung plat" id="cari-hitung">' + daftar.length + ' produk</p>' +
+        '<p class="plat cari-kosong" id="cari-kosong" hidden>Tidak ada kopi yang cocok.</p>' +
+        '<div class="grid" id="grid-katalog">' +
           (daftar.length ? daftar.map(function (p) { return kartu(data, p); }).join('')
                          : '<p class="plat">Belum ada produk di kategori ini.</p>') +
         '</div>' +
@@ -628,6 +650,7 @@
     varianDari: varianDari, fotoDari: fotoDari,
     produkHabis: produkHabis, hargaTerendah: hargaTerendah,
     kategoriDaftar: kategoriDaftar, produkKategori: produkKategori,
+    kataCari: kataCari,
     kategoriProduk: kategoriProduk,
     seksiDari: seksiDari, seksiSatu: seksiSatu, seksiTerisi: seksiTerisi,
     beranda: beranda, shop: shop, tentang: tentang, produk: produk,

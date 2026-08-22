@@ -404,3 +404,27 @@ test('teks pemilik yang memuat tanda kutip tidak merusak atribut HTML', function
   assert.doesNotMatch(html, /alt="Kopi "Spesial"/);
   assert.match(html, /&quot;Spesial&quot;/);
 });
+
+// Pencarian mencocokkan atribut ini, bukan teks yang terlihat di kartu. Ukuran
+// tidak pernah tertulis di kartu sejak daftar beratnya dibuang, padahal "1 kg"
+// termasuk yang paling sering diketik orang -- kalau ukurannya tidak ikut ke
+// sini, kartunya tidak akan pernah ketemu.
+test('kata pencarian memuat nama, asal, kategori, dan ukuran', function () {
+  const d = data();
+  const kata = RENDER.kataCari(d, d.produk[0]);
+  assert.match(kata, /kopi arabika puntang/);
+  assert.match(kata, /gunung puntang/);
+  assert.match(kata, /arabika/);
+  assert.match(kata, /500 g/);
+  assert.strictEqual(kata, kata.toLowerCase());
+});
+
+test('produk tanpa keterangan tetap bisa dicari lewat namanya', function () {
+  const d = data({
+    produk: [{ id: 1, slug: 'polos', nama: 'Kopi Polos', origin: null, proses: null, roast: null,
+               altitude: null, varietas: null, catatan_rasa: null, ringkas: null, deskripsi: null,
+               opsi_giling: [] }],
+    varian: [], produkKategori: []
+  });
+  assert.strictEqual(RENDER.kataCari(d, d.produk[0]), 'kopi polos');
+});
