@@ -655,6 +655,72 @@
     return { baris: baris, hilang: hilang, total: total, jumlah: jumlah };
   }
 
+  // -------------------------------------------------------------------------
+  // Ongkos kirim
+  // -------------------------------------------------------------------------
+  //
+  // Tarif tetap per zona, bukan tarif asli kurir. Yang menentukan tarifnya
+  // pemilik, di /admin, dan seluruh aturannya ada di tiga fungsi ini supaya
+  // angka yang dilihat pembeli sebelum membayar dan angka yang dihitung ulang
+  // sebelum pesanan dibuat tidak pernah datang dari dua tempat berbeda.
+
+  function normal(teks) {
+    return String(teks == null ? '' : teks).trim().toLowerCase();
+  }
+
+  // Zona yang dimatikan tidak ikut dicari: mematikannya berarti daerah itu
+  // sedang tidak dilayani, dan zona yang tetap ketemu akan membiarkan pembeli
+  // di sana menyelesaikan pesanan yang tidak akan pernah dikirim.
+  function zonaUntuk(daftarZona, provinsi) {
+    const cari = normal(provinsi);
+    if (!cari) return null;
+    return (daftarZona || []).find(function (z) {
+      return z.aktif && (z.provinsi || []).some(function (p) { return normal(p) === cari; });
+    }) || null;
+  }
+
+  // Berat kirim, bukan berat kopi. Yang pertama sudah termasuk kemasan dan
+  // itulah yang ditagih ekspedisi; yang kedua untuk memotong stok.
+  function beratKeranjang(katalog, isi) {
+    return (isi || []).reduce(function (t, x) {
+      const v = (katalog.varian || []).find(function (k) { return k.id === x.v; });
+      if (!v) return t;
+      const qty = Math.max(1, Math.floor(Number(x.q) || 1));
+      return t + Number(v.berat_kirim_g || 0) * qty;
+    }, 0);
+  }
+
+  function hitungOngkir(opsi) {
+    const zona = opsi && opsi.zona;
+    const berat = Number(opsi && opsi.beratGram) || 0;
+
+    // null, bukan nol. Nol adalah keterangan bahwa kirimnya gratis, dan itu
+    // jawaban yang salah untuk "kami belum tahu ongkirnya ke sana".
+    if (!zona || berat <= 0) return null;
+
+    // Ekspedisi menagih per kilogram dan membulatkan ke atas. Membulatkan ke
+    // bawah berarti toko menombok selisihnya di tiap pesanan, diam-diam.
+    const kg = Math.ceil(berat / 1000);
+    const penuh = Number(zona.tarif_per_kg) * kg;
+
+    // Ambang dibandingkan dengan harga barang saja. Kalau ongkirnya ikut
+    // dihitung, pesanan bisa lolos ambang justru karena ongkirnya mahal.
+    const ambang = Number(opsi.gratisDari) || 0;
+    const subtotal = Number(opsi.subtotal) || 0;
+    const gratis = ambang > 0 && subtotal >= ambang;
+
+    return {
+      zona: zona.nama,
+      tarifPerKg: Number(zona.tarif_per_kg),
+      kg: kg,
+      ongkir: gratis ? 0 : penuh,
+      gratis: gratis,
+      // Yang ditanggung toko tetap dicatat. Gratis ongkir adalah biaya
+      // pemasaran, dan biaya yang tercatat nol tidak pernah bisa dinilai.
+      ditanggungToko: gratis ? penuh : 0
+    };
+  }
+
   // Pesan WhatsApp untuk satu keranjang. Sementara pembayaran di website belum
   // ada, ini yang menutup penjualan -- jadi isinya harus cukup untuk pemilik
   // menyiapkan pesanan tanpa bertanya balik: ukuran, gilingan, jumlah, harga.
@@ -866,6 +932,7 @@
     kategoriDaftar: kategoriDaftar, produkKategori: produkKategori,
     kataCari: kataCari, produkSorot: produkSorot,
     ringkasKeranjang: ringkasKeranjang, pesanWhatsapp: pesanWhatsapp,
+    zonaUntuk: zonaUntuk, beratKeranjang: beratKeranjang, hitungOngkir: hitungOngkir,
     keranjang: keranjang,
     kategoriProduk: kategoriProduk,
     seksiDari: seksiDari, seksiSatu: seksiSatu, seksiTerisi: seksiTerisi,

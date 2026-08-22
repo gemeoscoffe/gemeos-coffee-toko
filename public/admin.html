@@ -62,6 +62,11 @@
         Produk &amp; Varian
       </a>
 
+      <a href="#" id="nav-ongkir" class="nav-link">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/></svg>
+        Ongkos Kirim
+      </a>
+
       <div class="nav-group-title">Halaman Website</div>
       <a href="#" id="nav-depan" class="nav-link">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 4l9 6.5"/><path d="M5 10v9.5h14V10"/><path d="M10 20v-5h4v5"/></svg>
@@ -154,6 +159,42 @@
       <div id="toko-kelola" class="hidden"></div>
     </div>
 
+    <!-- ------------------------- Ongkos Kirim ------------------------- -->
+    <div class="content hidden" id="page-ongkir">
+
+      <div class="card">
+        <h3>Tarif per Zona</h3>
+        <p class="card-note">
+          Tarif tetap yang <b>Anda</b> tentukan, bukan tarif asli kurir. Ongkir dihitung
+          <b>tarif &times; berat dibulatkan ke atas per kilo</b> &mdash; pesanan 1,2 kg dihitung 2 kg,
+          sama seperti cara ekspedisi menagih. Beratnya memakai <b>berat kirim</b> tiap varian, yang sudah
+          termasuk kemasan.
+        </p>
+        <p class="card-note">
+          Zona yang <b>tidak dilayani</b> membuat checkout mengatakan ongkir ke sana belum bisa dihitung,
+          bukan menagih nol. Kalau tarif asli kurir ternyata lebih mahal dari yang Anda ketik di sini,
+          selisihnya keluar dari margin dan tidak ada yang akan memberitahu &mdash; jadi periksa sesekali.
+        </p>
+        <div id="ongkir-table" class="muted" style="margin-top:12px">Memuat...</div>
+        <p id="ongkir-status" style="margin-top:10px;font-size:13px"></p>
+      </div>
+
+      <div class="card">
+        <h3>Gratis Ongkir</h3>
+        <p class="card-note">
+          Belanja minimal supaya ongkirnya gratis. <b>Kosongkan kalau tidak ada gratis ongkir.</b>
+          Angkanya dibandingkan dengan harga barang saja, belum termasuk ongkir &mdash; kalau ongkir ikut
+          dihitung, pesanan bisa lolos ambang justru karena ongkirnya mahal.
+        </p>
+        <div class="row">
+          <div style="width:200px"><label>Belanja minimal (Rp)</label>
+            <input id="ongkir-gratis" type="number" min="0" step="1000" placeholder="kosong = tidak ada"></div>
+          <button class="btn-primary" id="ongkir-gratis-simpan">Simpan</button>
+        </div>
+      </div>
+
+    </div>
+
     <!-- ------------------------ Halaman Depan ------------------------- -->
     <div class="content hidden" id="page-depan">
       <div id="toko-seksi-depan"><p class="muted">Memuat...</p></div>
@@ -178,6 +219,7 @@
 <script src="admin-nav.js"></script>
 <script src="admin-katalog.js"></script>
 <script src="admin-seksi.js"></script>
+<script src="admin-ongkir.js"></script>
 <script src="auth.js"></script>
 </body>
 </html>

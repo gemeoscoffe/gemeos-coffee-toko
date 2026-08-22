@@ -127,6 +127,7 @@ async function authOnSignedIn(session) {
   authShowGate(false);
   loadTokoPage();
   loadSeksiPage();
+  loadOngkirPage();
 }
 
 async function authSignOut() {

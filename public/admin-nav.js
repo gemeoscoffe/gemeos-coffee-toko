@@ -15,6 +15,7 @@
 
 const HALAMAN_ADMIN = {
   produk:  { judul: 'Produk & Varian',  sub: 'Yang dijual, ukurannya, harganya, stoknya, fotonya' },
+  ongkir:  { judul: 'Ongkos Kirim',     sub: 'Tarif per zona dan ambang gratis ongkir' },
   depan:   { judul: 'Halaman Depan',    sub: 'Hero, cerita, kartu alasan, testimoni dan lokasi di gemeoscoffee.com' },
   tentang: { judul: 'Tentang Kami',     sub: 'Isi halaman /tentang/' }
 };

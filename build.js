@@ -478,7 +478,10 @@ async function bangun() {
     }),
     varian: data.varian.map(function (v) {
       return { id: v.id, produk_id: v.produk_id, label_ukuran: v.label_ukuran,
-               harga: Number(v.harga), stok: v.stok };
+               harga: Number(v.harga), stok: v.stok,
+               // Berat kirim, bukan berat kopi: yang ini sudah termasuk kemasan
+               // dan itulah yang dipakai menghitung ongkir di checkout.
+               berat_kirim_g: Number(v.berat_kirim_g || 0) };
     })
   }), 'utf8');
 
