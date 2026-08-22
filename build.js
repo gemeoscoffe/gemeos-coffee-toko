@@ -19,6 +19,7 @@
 const fs = require('fs');
 const path = require('path');
 const RENDER = require('./public/render.js');
+const KONTEN = require('./konten.js');
 
 const PUBLIK = path.join(__dirname, 'public');
 const KELUAR = path.join(__dirname, 'dist');
@@ -40,8 +41,10 @@ const NAMA_TOKO = 'Gemeos Coffee';
 
 // Alamat yang dilihat pembeli. Sengaja berbeda dari email yang dipakai masuk ke
 // /admin -- yang itu ada di tabel app_users dan tidak boleh ikut berubah kalau
-// alamat layanan pelanggan diganti.
-const EMAIL_TOKO = 'csdarupa@gmail.com';
+// alamat layanan pelanggan diganti. Definisinya tinggal di konten.js, satu
+// tempat dengan halaman Kontak yang menyebutkannya.
+const EMAIL_TOKO = KONTEN.kontak.email;
+const WA_TOKO = KONTEN.kontak.whatsapp;
 
 // Token Cloudflare Web Analytics. Memang ikut terkirim di HTML tiap halaman --
 // itu cara kerjanya, dan tidak membuka apa pun kalau dipakai orang lain.
@@ -117,8 +120,18 @@ function kaki() {
             '<a href="' + RENDER.MARKETPLACE + '" target="_blank" rel="noopener">TikTok Shop</a>' +
           '</section>' +
           '<section>' +
+            '<span class="plat">Bantuan</span>' +
+            '<a href="/pengiriman/">Pengiriman</a>' +
+            '<a href="/retur/">Retur &amp; penukaran</a>' +
+            '<a href="/syarat/">Syarat &amp; ketentuan</a>' +
+            '<a href="/privasi/">Kebijakan privasi</a>' +
+          '</section>' +
+          '<section>' +
             '<span class="plat">Hubungi</span>' +
+            '<a href="' + WA_TOKO + '" target="_blank" rel="noopener">WhatsApp ' +
+              KONTEN.kontak.whatsappTampil + '</a>' +
             '<a href="mailto:' + EMAIL_TOKO + '">' + EMAIL_TOKO + '</a>' +
+            '<a href="/kontak/">Semua cara menghubungi</a>' +
           '</section>' +
         '</div>' +
         '<div class="kaki-bawah">' +
@@ -181,6 +194,26 @@ function halaman(opsi) {
     '</body>\n</html>\n';
 }
 
+// Halaman tulisan dirakit dari blok sederhana, bukan dari HTML mentah di
+// konten.js -- supaya yang menyunting kalimatnya tidak perlu tahu satu tag pun,
+// dan tidak mungkin merusak tata letak halaman dengan kurung yang lupa ditutup.
+function halamanTulisan(hal) {
+  const isi = hal.blok.map(function (b) {
+    if (b.h) return '<h2>' + RENDER.esc(b.h) + '</h2>';
+    if (b.p) return '<p>' + RENDER.esc(b.p) + '</p>';
+    if (b.ul) return '<ul>' + b.ul.map(function (x) { return '<li>' + RENDER.esc(x) + '</li>'; }).join('') + '</ul>';
+    if (b.tombol) return '<p><a class="tombol amber" href="' + RENDER.esc(b.tombol.ke) +
+      '" target="_blank" rel="noopener">' + RENDER.esc(b.tombol.teks) + '</a></p>';
+    return '';
+  }).join('');
+
+  return '<div class="wrap"><article class="tulisan-halaman">' +
+    '<span class="plat">Gemeos Coffee</span>' +
+    '<h1>' + RENDER.esc(hal.judul) + '</h1>' +
+    isi +
+    '</article></div>';
+}
+
 // ---------------------------------------------------------------------------
 // Data terstruktur
 // ---------------------------------------------------------------------------
@@ -232,6 +265,7 @@ function jsonldToko(data) {
     description: 'Roastery kopi Arabika dan Robusta dari Gunung Puntang, Jawa Barat.',
     url: BASIS + '/',
     email: EMAIL_TOKO,
+    telephone: KONTEN.kontak.whatsappE164,
     currenciesAccepted: 'IDR',
     areaServed: { '@type': 'Country', name: 'Indonesia' },
     makesOffer: data.produk.slice(0, 12).map(function (p) {
@@ -338,6 +372,17 @@ async function bangun() {
       jsonld: jsonldProduk(data, p)
     }));
     alamat.push({ url: '/produk/' + p.slug + '/', prioritas: '0.9' });
+  }
+
+  // Halaman tulisan: pengiriman, retur, syarat, privasi, kontak.
+  for (const hal of KONTEN.halaman) {
+    tulis('/' + hal.slug + '/', halaman({
+      alamat: '/' + hal.slug + '/',
+      judul: hal.judul + ' — Gemeos Coffee',
+      deskripsi: hal.ringkas,
+      isi: halamanTulisan(hal)
+    }));
+    alamat.push({ url: '/' + hal.slug + '/', prioritas: '0.4' });
   }
 
   const hariIni = new Date().toISOString().slice(0, 10);
