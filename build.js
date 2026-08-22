@@ -254,12 +254,19 @@ function halaman(opsi) {
         tautanNav('/shop/', 'Shop', opsi.alamat) +
         tautanNav('/tentang/', 'About Us', opsi.alamat) +
         '<a href="' + RENDER.MARKETPLACE + '" target="_blank" rel="noopener">TikTok Shop</a>' +
+        // Jumlah barang diisi JavaScript dari keranjang di peramban ini. Dibangun
+        // kosong karena berkas HTML yang sama dikirim ke semua orang -- angka
+        // apa pun yang dicetak di sini akan salah bagi hampir semuanya.
+        '<a class="tautan-keranjang" href="/keranjang/"' +
+          (opsi.alamat === '/keranjang/' ? ' aria-current="page"' : '') + '>' +
+          'Keranjang<span class="jumlah-keranjang" id="jumlah-keranjang" hidden></span></a>' +
         tombolTema() +
       '</nav>' +
     '</div></header>\n' +
     '<main>' + opsi.isi + '</main>\n' +
     kaki() + '\n' +
     apung() + '\n' +
+    (opsi.render ? '<script src="/render.js" defer></script>\n' : '') +
     '<script src="/etalase.js" defer></script>\n' +
     '<script defer src="https://static.cloudflareinsights.com/beacon.min.js" ' +
       'data-cf-beacon=\'{"token":"' + ANALYTICS_TOKEN + '"}\'></script>\n' +
@@ -446,6 +453,34 @@ async function bangun() {
     }));
     alamat.push({ url: '/produk/' + p.slug + '/', prioritas: '0.9' });
   }
+
+  // Keranjang. Halamannya dibangun kosong dan diisi di peramban -- isinya milik
+  // satu pengunjung dan tidak boleh ikut ke berkas yang sama untuk semua orang.
+  tulis('/keranjang/', halaman({
+    alamat: '/keranjang/',
+    judul: 'Keranjang — Gemeos Coffee',
+    deskripsi: 'Pesanan yang sudah kamu pilih di Gemeos Coffee.',
+    isi: RENDER.keranjang(WA_TOKO),
+    // Satu-satunya halaman yang butuh perakit halaman di peramban. Halaman lain
+    // sudah jadi sebelum dikirim; keranjang tidak bisa, isinya milik satu orang.
+    render: true
+  }));
+
+  // Katalog ringkas untuk halaman keranjang. Yang disimpan di peramban hanya id
+  // varian dan jumlahnya; nama dan harganya dibaca dari berkas ini setiap kali
+  // keranjang dibuka, jadi harga yang berubah tidak pernah tertinggal di
+  // keranjang yang mengendap seminggu.
+  //
+  // Tidak masuk sitemap dan tidak perlu: ini data, bukan halaman.
+  fs.writeFileSync(path.join(KELUAR, 'katalog.json'), JSON.stringify({
+    produk: data.produk.map(function (p) {
+      return { id: p.id, nama: p.nama, slug: p.slug, foto: fotoPertama(p) };
+    }),
+    varian: data.varian.map(function (v) {
+      return { id: v.id, produk_id: v.produk_id, label_ukuran: v.label_ukuran,
+               harga: Number(v.harga), stok: v.stok };
+    })
+  }), 'utf8');
 
   // Halaman tulisan: pengiriman, retur, syarat, privasi, kontak.
   for (const hal of KONTEN.halaman) {

@@ -1078,3 +1078,112 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
 @media (prefers-reduced-motion: reduce) {
   .geser-rel { scroll-behavior: auto; }
 }
+
+/* ---------------------------------------------------------------------------
+   Keranjang
+   --------------------------------------------------------------------------- */
+
+.tautan-keranjang { position: relative; }
+
+/* display: inline-grid mengalahkan [hidden] bawaan peramban, jadi tanpa aturan
+   ini lencana bertuliskan 0 tetap tergambar di keranjang yang kosong. Sama
+   dengan yang terjadi pada panah barisan produk di halaman depan. */
+.jumlah-keranjang[hidden] { display: none; }
+
+.jumlah-keranjang {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--amber);
+  color: #FFFFFF;
+  font-family: var(--data);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.keranjang { max-width: 820px; padding: 56px 0 80px; }
+.keranjang h1 { margin: 10px 0 28px; }
+
+.k-daftar { list-style: none; margin: 0; padding: 0; }
+
+.k-baris {
+  display: grid;
+  grid-template-columns: 72px 1fr auto auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 0;
+  border-top: 1px solid var(--garis);
+}
+
+.k-baris img, .k-nofoto {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  background: var(--naik);
+}
+
+.k-tulisan a { color: var(--tinta); text-decoration: none; font-weight: 600; }
+.k-tulisan a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.k-tulisan p { margin: 4px 0 0; font-size: 13px; }
+
+.k-peringatan { color: var(--amber); font-size: 13px; margin: 6px 0 0; }
+
+.k-jumlah { display: inline-flex; align-items: center; gap: 4px; }
+
+.k-jumlah button {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--garis);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--tinta);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.k-jumlah button:hover { border-color: var(--tinta); }
+.k-jumlah span { min-width: 26px; text-align: center; font-family: var(--data); font-size: 14px; }
+
+.k-harga { text-align: right; }
+.k-harga b { display: block; font-family: var(--serif); font-size: 17px; }
+.k-harga .plat { font-size: 11px; }
+
+.k-buang {
+  border: 0;
+  background: transparent;
+  color: var(--kabut);
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.k-buang:hover { color: var(--tinta); }
+
+.k-kaki { border-top: 1px solid var(--garis); padding-top: 22px; margin-top: 4px; }
+
+.k-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0 0 4px;
+  font-family: var(--serif);
+  font-size: 20px;
+}
+
+.k-kaki .plat { display: block; margin-bottom: 18px; }
+.k-kaki .tombol { margin-right: 10px; }
+
+/* Di ponsel kartunya jadi dua baris: foto dan tulisan di atas, pengatur jumlah
+   dan harga di bawah. Lima kolom pada layar 360 px membuat harganya terpotong. */
+@media (max-width: 620px) {
+  .k-baris { grid-template-columns: 64px 1fr auto; row-gap: 12px; }
+  .k-baris img, .k-nofoto { width: 64px; height: 64px; }
+  .k-jumlah { grid-column: 2; }
+  .k-harga { grid-column: 3; }
+}

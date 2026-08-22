@@ -514,6 +514,82 @@
     '</section></div>';
   }
 
+  // -------------------------------------------------------------------------
+  // Keranjang
+  // -------------------------------------------------------------------------
+  //
+  // Yang disimpan di peramban hanya id varian, jumlah, dan pilihan gilingan --
+  // bukan nama dan bukan harga. Keranjang bisa mengendap berhari-hari, dan
+  // harga yang ikut tersimpan di sana akan tetap terpampang setelah harganya
+  // naik. Nama dan harga selalu dibaca ulang dari katalog.
+  //
+  // Baris yang variannya sudah tidak ada di katalog -- dihapus atau
+  // disembunyikan pemilik -- dikembalikan sebagai `hilang` supaya halaman
+  // keranjang bisa mengatakannya, bukan diam-diam membuangnya. Barang yang
+  // lenyap tanpa penjelasan membuat pembeli mengira dia salah ingat.
+  function ringkasKeranjang(katalog, isi) {
+    const baris = [];
+    const hilang = [];
+    let total = 0;
+    let jumlah = 0;
+
+    (isi || []).forEach(function (x) {
+      const v = (katalog.varian || []).find(function (k) { return k.id === x.v; });
+      if (!v) { hilang.push(x); return; }
+      const p = (katalog.produk || []).find(function (k) { return k.id === v.produk_id; });
+      if (!p) { hilang.push(x); return; }
+
+      const qty = Math.max(1, Math.floor(Number(x.q) || 1));
+      const subtotal = Number(v.harga) * qty;
+      total += subtotal;
+      jumlah += qty;
+
+      baris.push({
+        varianId: v.id, qty: qty, giling: x.g || null,
+        nama: p.nama, slug: p.slug, foto: p.foto || null,
+        ukuran: v.label_ukuran, harga: Number(v.harga), subtotal: subtotal,
+        // stok null berarti tidak dibatasi. Yang dibatasi dan kurang dari qty
+        // ditandai di sini, bukan saat menekan tombol lanjut -- pembeli berhak
+        // tahu sebelum dia merasa pesanannya sudah beres.
+        stok: (v.stok === null || v.stok === undefined) ? null : Number(v.stok),
+        lebihStok: (v.stok !== null && v.stok !== undefined) && qty > Number(v.stok)
+      });
+    });
+
+    return { baris: baris, hilang: hilang, total: total, jumlah: jumlah };
+  }
+
+  // Pesan WhatsApp untuk satu keranjang. Sementara pembayaran di website belum
+  // ada, ini yang menutup penjualan -- jadi isinya harus cukup untuk pemilik
+  // menyiapkan pesanan tanpa bertanya balik: ukuran, gilingan, jumlah, harga.
+  function pesanWhatsapp(ringkas, alamatToko) {
+    const baris = ringkas.baris.map(function (b) {
+      return '- ' + b.nama + ' ' + b.ukuran +
+        (b.giling ? ' (' + b.giling + ')' : '') +
+        ' x' + b.qty + ' = ' + rp(b.subtotal);
+    });
+    return 'Halo Gemeos Coffee, saya mau pesan:\n\n' + baris.join('\n') +
+      '\n\nTotal: ' + rp(ringkas.total) + ' (belum termasuk ongkir)' +
+      (alamatToko ? '\n' + alamatToko : '');
+  }
+
+  // Halaman keranjang dibangun kosong dan diisi di peramban: isinya milik satu
+  // pengunjung, tidak boleh ikut ke berkas HTML yang sama untuk semua orang.
+  function keranjang(waDasar) {
+    return '<div class="wrap"><section class="keranjang">' +
+      '<span class="plat">Keranjang</span>' +
+      '<h1>Pesanan kamu</h1>' +
+      // Nomor WhatsApp-nya dititipkan lewat atribut, bukan ditulis di
+      // etalase.js: satu-satunya tempat nomor itu didefinisikan adalah
+      // konten.js, dan menyalinnya ke berkas kedua adalah cara nomor lama
+      // bertahan di satu tempat setelah diganti di tempat lain.
+      '<div id="keranjang-isi" data-wa="' + esc(waDasar || '') + '">' +
+        '<p class="plat">Memuat keranjang...</p></div>' +
+      '<noscript><p class="plat">Keranjang membutuhkan JavaScript. ' +
+        'Kamu tetap bisa memesan lewat WhatsApp atau TikTok Shop di halaman Kontak.</p></noscript>' +
+    '</section></div>';
+  }
+
   // Halaman depan: memperkenalkan, lalu menunjukkan barangnya, lalu bercerita.
   // Urutannya bukan selera -- pengunjung dari tautan TikTok belum tentu tahu ini
   // siapa, dan yang mereka cari lebih dulu adalah kopinya, bukan riwayatnya.
@@ -658,8 +734,16 @@
               : '') +
             (habis
               ? '<button class="tombol mati" type="button" disabled>Stok habis</button>'
-              : '<a class="tombol amber" href="' + MARKETPLACE + '" target="_blank" rel="noopener">Beli di TikTok Shop</a>') +
-            '<p class="catatan-beli">Pembayaran dan pengiriman diproses lewat toko resmi kami.</p>' +
+              : '<button class="tombol amber" type="button" id="tambah-keranjang" ' +
+                  'data-produk="' + p.id + '">Tambah ke keranjang</button>' +
+                '<p class="tambah-kabar" id="tambah-kabar" role="status" hidden></p>' +
+                // Marketplace tetap ditawarkan sebagai jalan kedua, tapi ikut
+                // hilang waktu stoknya habis. Menawarkan tombol beli di halaman
+                // yang baru saja mengatakan habis membatalkan keterangan itu.
+                '<a class="tombol garis" href="' + MARKETPLACE + '" target="_blank" rel="noopener">' +
+                  'Beli di TikTok Shop</a>') +
+            '<p class="catatan-beli">Belanja di sini dikonfirmasi lewat WhatsApp. Pembayaran langsung di ' +
+              'website sedang disiapkan.</p>' +
             '<dl class="meta">' +
               '<div><dt>Ketersediaan</dt><dd id="stok-tampil">' +
                 (habis ? '<span class="habis-teks">Habis</span>' : '<span class="siap-teks">Siap dikirim</span>') +
@@ -683,6 +767,8 @@
     produkHabis: produkHabis, hargaTerendah: hargaTerendah,
     kategoriDaftar: kategoriDaftar, produkKategori: produkKategori,
     kataCari: kataCari, produkSorot: produkSorot,
+    ringkasKeranjang: ringkasKeranjang, pesanWhatsapp: pesanWhatsapp,
+    keranjang: keranjang,
     kategoriProduk: kategoriProduk,
     seksiDari: seksiDari, seksiSatu: seksiSatu, seksiTerisi: seksiTerisi,
     beranda: beranda, shop: shop, tentang: tentang, produk: produk,

@@ -468,3 +468,76 @@ test('barisan halaman depan digambar sebagai rel geser, bukan grid', function ()
   // JavaScript memasang dua tombol yang tidak menggeser apa pun.
   assert.match(html, /class="geser-panah kiri" type="button" aria-label="[^"]*" hidden/);
 });
+
+// -- Keranjang ---------------------------------------------------------------
+//
+// Keranjang menyimpan id dan jumlah saja; nama dan harganya dibaca ulang dari
+// katalog tiap kali dibuka. Yang diuji di sini akibat dari pilihan itu: harga
+// yang berubah harus ikut berubah di keranjang, dan varian yang hilang tidak
+// boleh lenyap diam-diam.
+
+function katalog(ubah) {
+  return Object.assign({
+    produk: [
+      { id: 1, nama: 'Kopi Satu', slug: 'satu', foto: 'https://contoh/1.webp' },
+      { id: 2, nama: 'Kopi Dua', slug: 'dua', foto: null }
+    ],
+    varian: [
+      { id: 10, produk_id: 1, label_ukuran: '200 g', harga: 63100, stok: null },
+      { id: 11, produk_id: 1, label_ukuran: '1 kg', harga: 250000, stok: 2 },
+      { id: 20, produk_id: 2, label_ukuran: '250 g', harga: 45800, stok: 0 }
+    ]
+  }, ubah || {});
+}
+
+test('keranjang menjumlahkan harga dari katalog, bukan dari yang tersimpan', function () {
+  const r = RENDER.ringkasKeranjang(katalog(), [{ v: 10, q: 2 }, { v: 20, q: 1 }]);
+  assert.strictEqual(r.total, 63100 * 2 + 45800);
+  assert.strictEqual(r.jumlah, 3);
+  assert.strictEqual(r.baris[0].nama, 'Kopi Satu');
+  assert.strictEqual(r.baris[0].subtotal, 126200);
+});
+
+test('varian yang sudah tidak ada di katalog dilaporkan, bukan dibuang diam-diam', function () {
+  const r = RENDER.ringkasKeranjang(katalog(), [{ v: 10, q: 1 }, { v: 999, q: 1 }]);
+  assert.strictEqual(r.baris.length, 1);
+  assert.strictEqual(r.hilang.length, 1);
+  assert.strictEqual(r.total, 63100);
+});
+
+test('jumlah melebihi stok ditandai, stok kosong berarti tidak dibatasi', function () {
+  const r = RENDER.ringkasKeranjang(katalog(), [{ v: 11, q: 5 }, { v: 10, q: 99 }]);
+  assert.strictEqual(r.baris[0].lebihStok, true);
+  assert.strictEqual(r.baris[0].stok, 2);
+  assert.strictEqual(r.baris[1].lebihStok, false);
+  assert.strictEqual(r.baris[1].stok, null);
+});
+
+test('jumlah yang tidak masuk akal dibulatkan ke satu, bukan dipakai apa adanya', function () {
+  const r = RENDER.ringkasKeranjang(katalog(), [{ v: 10, q: 0 }, { v: 20, q: -3 }]);
+  assert.strictEqual(r.baris[0].qty, 1);
+  assert.strictEqual(r.baris[1].qty, 1);
+  assert.strictEqual(r.total, 63100 + 45800);
+});
+
+// Selama pembayaran di website belum ada, pesan inilah yang menutup penjualan.
+// Kalau ukuran atau gilingannya tidak ikut, pemilik harus bertanya balik.
+test('pesan WhatsApp memuat ukuran, gilingan, jumlah, dan total', function () {
+  const r = RENDER.ringkasKeranjang(katalog(), [{ v: 10, q: 2, g: 'Gilingan Halus' }]);
+  const pesan = RENDER.pesanWhatsapp(r);
+  assert.match(pesan, /Kopi Satu 200 g \(Gilingan Halus\) x2 = Rp126\.200/);
+  assert.match(pesan, /Total: Rp126\.200/);
+  assert.match(pesan, /belum termasuk ongkir/);
+});
+
+test('produk tanpa pilihan gilingan tidak menulis tanda kurung kosong', function () {
+  const r = RENDER.ringkasKeranjang(katalog(), [{ v: 20, q: 1 }]);
+  assert.doesNotMatch(RENDER.pesanWhatsapp(r), /\(\)/);
+});
+
+test('halaman keranjang dibangun kosong dan membawa alamat WhatsApp', function () {
+  const html = RENDER.keranjang('https://wa.me/628815865698');
+  assert.match(html, /id="keranjang-isi"/);
+  assert.match(html, /data-wa="https:\/\/wa\.me\/628815865698"/);
+  assert.match(html, /<noscript>/);
+});

@@ -245,4 +245,215 @@
     window.addEventListener('load', perbarui);
     perbarui();
   }
+  // ---------------------------------------------------------------------------
+  // Keranjang
+  // ---------------------------------------------------------------------------
+  //
+  // Isinya tinggal di localStorage peramban pembeli, bukan di server. Tidak ada
+  // akun, tidak ada sesi, dan tidak ada data pribadi yang berpindah sebelum
+  // pembeli benar-benar memesan.
+  //
+  // Yang disimpan hanya id varian, jumlah, dan pilihan gilingan. Nama dan harga
+  // dibaca ulang dari /katalog.json setiap kali keranjang dibuka -- keranjang
+  // bisa mengendap seminggu, dan harga yang ikut tersimpan akan tetap terpampang
+  // setelah harganya naik.
+
+  const KUNCI_KERANJANG = 'keranjang';
+
+  function bacaKeranjang() {
+    try {
+      const isi = JSON.parse(localStorage.getItem(KUNCI_KERANJANG) || '[]');
+      return Array.isArray(isi) ? isi.filter(function (x) { return x && x.v; }) : [];
+    } catch (e) {
+      // Isi yang rusak lebih baik dianggap kosong daripada menggagalkan seluruh
+      // halaman. Yang hilang keranjangnya, bukan tokonya.
+      return [];
+    }
+  }
+
+  function tulisKeranjang(isi) {
+    try { localStorage.setItem(KUNCI_KERANJANG, JSON.stringify(isi)); } catch (e) {}
+    perbaruiJumlahKeranjang();
+  }
+
+  function perbaruiJumlahKeranjang() {
+    const el = document.getElementById('jumlah-keranjang');
+    if (!el) return;
+    const n = bacaKeranjang().reduce(function (t, x) { return t + (Number(x.q) || 0); }, 0);
+    el.textContent = n;
+    el.hidden = n === 0;
+  }
+
+  perbaruiJumlahKeranjang();
+
+  // Keranjang dibuka di dua tab sekaligus bukan hal aneh. Tanpa ini, tab yang
+  // satu terus memperlihatkan jumlah yang sudah tidak benar.
+  window.addEventListener('storage', function (e) {
+    if (e.key === KUNCI_KERANJANG) {
+      perbaruiJumlahKeranjang();
+      if (document.getElementById('keranjang-isi')) gambarKeranjang();
+    }
+  });
+
+  // -- Tombol tambah di halaman produk ----------------------------------------
+
+  const tombolTambah = document.getElementById('tambah-keranjang');
+  if (tombolTambah) {
+    tombolTambah.addEventListener('click', function () {
+      const opsiUkuranEl = document.getElementById('opsi-ukuran');
+      const terpilih = opsiUkuranEl && opsiUkuranEl.querySelector('button[aria-pressed="true"]');
+      if (!terpilih) return;
+
+      const opsiGilingEl = document.getElementById('opsi-giling');
+      const gilingEl = opsiGilingEl && opsiGilingEl.querySelector('button[aria-pressed="true"]');
+      const giling = gilingEl ? gilingEl.textContent.trim() : null;
+      const varianId = Number(terpilih.dataset.varian);
+
+      const isi = bacaKeranjang();
+      // Ukuran yang sama dengan gilingan yang sama adalah baris yang sama.
+      // Gilingan berbeda bukan -- keduanya harus dikemas terpisah.
+      const ada = isi.find(function (x) { return x.v === varianId && (x.g || null) === giling; });
+      if (ada) ada.q = (Number(ada.q) || 1) + 1;
+      else isi.push({ v: varianId, q: 1, g: giling });
+      tulisKeranjang(isi);
+
+      const kabar = document.getElementById('tambah-kabar');
+      if (kabar) {
+        kabar.hidden = false;
+        kabar.innerHTML = 'Ditambahkan. <a href="/keranjang/">Lihat keranjang</a>';
+      }
+    });
+  }
+
+  // -- Halaman keranjang ------------------------------------------------------
+
+  const kotakKeranjang = document.getElementById('keranjang-isi');
+  if (kotakKeranjang) {
+    let KATALOG = null;
+
+    async function gambarKeranjang() {
+      const isi = bacaKeranjang();
+
+      if (isi.length === 0) {
+        kotakKeranjang.innerHTML =
+          '<p class="plat">Keranjangmu masih kosong.</p>' +
+          '<p><a class="tombol amber" href="/shop/">Lihat katalog</a></p>';
+        return;
+      }
+
+      if (!KATALOG) {
+        try {
+          const res = await fetch('/katalog.json', { cache: 'no-cache' });
+          if (!res.ok) throw new Error(String(res.status));
+          KATALOG = await res.json();
+        } catch (e) {
+          // Katalog gagal dibaca bukan alasan mengosongkan keranjang orang.
+          kotakKeranjang.innerHTML =
+            '<p class="plat">Katalog gagal dimuat, jadi harga belum bisa ditampilkan. ' +
+            'Keranjangmu masih tersimpan &mdash; coba muat ulang halaman ini.</p>';
+          return;
+        }
+      }
+
+      const r = RENDER.ringkasKeranjang(KATALOG, isi);
+
+      // Baris yang variannya sudah hilang dari katalog dibuang dari simpanan,
+      // tapi baru setelah pembeli diberi tahu -- lihat pesan di bawah.
+      if (r.hilang.length) {
+        tulisKeranjang(isi.filter(function (x) {
+          return !r.hilang.some(function (h) { return h === x; });
+        }));
+      }
+
+      const baris = r.baris.map(function (b) {
+        return '<li class="k-baris" data-varian="' + b.varianId + '" data-giling="' +
+            RENDER.esc(b.giling || '') + '">' +
+          (b.foto
+            ? '<img src="' + RENDER.esc(b.foto) + '" alt="" width="72" height="72" loading="lazy">'
+            : '<span class="k-nofoto" aria-hidden="true"></span>') +
+          '<div class="k-tulisan">' +
+            '<a href="/produk/' + RENDER.esc(b.slug) + '/">' + RENDER.esc(b.nama) + '</a>' +
+            '<p class="plat">' + RENDER.esc(b.ukuran) +
+              (b.giling ? ' &middot; ' + RENDER.esc(b.giling) : '') + '</p>' +
+            (b.lebihStok
+              ? '<p class="k-peringatan">Sisa stok ' + b.stok + '. Jumlahnya akan kami sesuaikan.</p>'
+              : '') +
+          '</div>' +
+          '<div class="k-jumlah">' +
+            '<button type="button" class="k-kurang" aria-label="Kurangi jumlah">&minus;</button>' +
+            '<span>' + b.qty + '</span>' +
+            '<button type="button" class="k-tambah" aria-label="Tambah jumlah">+</button>' +
+          '</div>' +
+          '<div class="k-harga"><b>' + RENDER.rp(b.subtotal) + '</b>' +
+            (b.qty > 1 ? '<span class="plat">' + RENDER.rp(b.harga) + ' / bungkus</span>' : '') +
+          '</div>' +
+          '<button type="button" class="k-buang" aria-label="Hapus dari keranjang">&times;</button>' +
+        '</li>';
+      }).join('');
+
+      const waDasar = kotakKeranjang.dataset.wa;
+      const wa = waDasar
+        ? waDasar + '?text=' + encodeURIComponent(RENDER.pesanWhatsapp(r))
+        : '/kontak/';
+
+      kotakKeranjang.innerHTML =
+        (r.hilang.length
+          ? '<p class="k-peringatan">' + r.hilang.length + ' barang dikeluarkan dari keranjang karena ' +
+            'sudah tidak ada di katalog.</p>'
+          : '') +
+        '<ul class="k-daftar">' + baris + '</ul>' +
+        '<div class="k-kaki">' +
+          '<p class="k-total"><span>Total</span><b>' + RENDER.rp(r.total) + '</b></p>' +
+          '<p class="plat">Belum termasuk ongkos kirim. Ongkir dihitung setelah alamatmu diketahui.</p>' +
+          '<a class="tombol amber" href="' + wa + '"' +
+            (waDasar ? ' target="_blank" rel="noopener"' : '') + '>' +
+            'Lanjut pesan lewat WhatsApp</a>' +
+          '<a class="tombol garis" href="/shop/">Tambah kopi lain</a>' +
+        '</div>';
+
+      wireKeranjang();
+    }
+
+    function ubahBaris(li, fn) {
+      const varianId = Number(li.dataset.varian);
+      const giling = li.dataset.giling || null;
+      const isi = bacaKeranjang();
+      const idx = isi.findIndex(function (x) {
+        return x.v === varianId && (x.g || null) === giling;
+      });
+      if (idx === -1) return;
+      const hasil = fn(isi[idx]);
+      if (hasil === null) isi.splice(idx, 1);
+      tulisKeranjang(isi);
+      gambarKeranjang();
+    }
+
+    function wireKeranjang() {
+      kotakKeranjang.querySelectorAll('.k-tambah').forEach(function (b) {
+        b.addEventListener('click', function () {
+          ubahBaris(this.closest('.k-baris'), function (x) { x.q = (Number(x.q) || 1) + 1; });
+        });
+      });
+
+      kotakKeranjang.querySelectorAll('.k-kurang').forEach(function (b) {
+        b.addEventListener('click', function () {
+          // Turun dari satu berarti keluar dari keranjang. Baris berjumlah nol
+          // tidak berarti apa-apa dan cuma menunggu dihapus dua kali.
+          ubahBaris(this.closest('.k-baris'), function (x) {
+            const n = (Number(x.q) || 1) - 1;
+            if (n < 1) return null;
+            x.q = n;
+          });
+        });
+      });
+
+      kotakKeranjang.querySelectorAll('.k-buang').forEach(function (b) {
+        b.addEventListener('click', function () {
+          ubahBaris(this.closest('.k-baris'), function () { return null; });
+        });
+      });
+    }
+
+    gambarKeranjang();
+  }
 })();
