@@ -32,6 +32,7 @@
   --terang-susu:        #FBF3E8; /* teks di atas cokelat sangrai */
   --terang-amber:       #A76B2D; /* isi biji di logo */
   --terang-amber-muda:  #D3A468; /* amber yang terbaca di atas cokelat tua */
+  --terang-merah:       #B3271A; /* teks galat di atas kertas terang */
 
   --gelap-kertas:    #14100C;
   --gelap-kartu:     #1D1712;
@@ -44,6 +45,9 @@
   --gelap-susu:        #FBF3E8;
   --gelap-amber:       #C98A43;
   --gelap-amber-muda:  #D3A468;
+  /* Merah yang sama akan tenggelam di latar gelap -- 3,5:1, di bawah ambang
+     keterbacaan. Yang dipakai versi yang jauh lebih terang. */
+  --gelap-merah:       #FF8A7C;
 
   --serif: Georgia, "Times New Roman", "Noto Serif", serif;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -67,6 +71,7 @@
   --sangrai-tua: var(--terang-sangrai-tua);
   --susu:        var(--terang-susu);
   --amber:       var(--terang-amber);
+  --merah:       var(--terang-merah);
   --amber-muda:  var(--terang-amber-muda);
   color-scheme: light;
 }
@@ -83,6 +88,7 @@
     --sangrai-tua: var(--gelap-sangrai-tua);
     --susu:        var(--gelap-susu);
     --amber:       var(--gelap-amber);
+    --merah:       var(--gelap-merah);
     --amber-muda:  var(--gelap-amber-muda);
     color-scheme: dark;
   }
@@ -99,6 +105,7 @@
   --sangrai-tua: var(--gelap-sangrai-tua);
   --susu:        var(--gelap-susu);
   --amber:       var(--gelap-amber);
+  --merah:       var(--gelap-merah);
   --amber-muda:  var(--gelap-amber-muda);
   color-scheme: dark;
 }
@@ -184,7 +191,20 @@ h3 { font-size: 20px; line-height: 1.25; letter-spacing: -0.01em; }
 .bar nav a { text-decoration: none; color: var(--kabut); }
 .bar nav a:hover { color: var(--tinta); }
 
-@media (max-width: 640px) { .bar nav { gap: 16px; font-size: 13px; } }
+/* Di ponsel merek dan menu tidak muat sebaris -- dengan lima tautan, menunya
+   sendiri lebih lebar dari layar dan seluruh halaman jadi bisa digeser
+   mendatar. Menunya turun ke baris kedua dan direntangkan, bukan ada tautan
+   yang dibuang: yang disembunyikan di ponsel tidak akan pernah ditemukan
+   pembeli yang justru paling banyak datang dari ponsel.
+
+   Padding tegaknya dikurangi supaya kepala halaman yang menempel di atas layar
+   tidak memakan dua kali lipat tinggi hanya karena jadi dua baris. */
+@media (max-width: 700px) {
+  .bar .wrap { flex-wrap: wrap; gap: 10px; padding-top: 11px; padding-bottom: 11px; }
+  .bar nav { margin-left: 0; width: 100%; justify-content: space-between; gap: 10px; font-size: 13px; }
+}
+
+@media (max-width: 360px) { .bar nav { font-size: 12px; gap: 8px; } }
 
 /* ---------------------------------------------------------------------------
    Tombol
@@ -422,7 +442,7 @@ h3 { font-size: 20px; line-height: 1.25; letter-spacing: -0.01em; }
 
 .pita .wrap {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
   gap: 32px;
   padding-top: 30px;
   padding-bottom: 30px;
@@ -451,6 +471,11 @@ section { padding: 72px 0; }
 
 .kepala-bagian div { display: flex; flex-direction: column; gap: 8px; }
 
+/* Judul katalog adalah h1 halamannya, tapi bentuknya kepala bagian --
+   ukurannya mengikuti h2 supaya tata letaknya tidak berubah hanya karena
+   tagnya diperbaiki. */
+.kepala-bagian h1 { font-size: clamp(26px, 3.6vw, 38px); line-height: 1.1; letter-spacing: -0.02em; }
+
 .saring { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 26px; }
 
 .saring a {
@@ -476,7 +501,11 @@ section { padding: 72px 0; }
    Kartu produk
    --------------------------------------------------------------------------- */
 
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 28px; }
+/* min(Npx, 100%) di dasar minmax, bukan Npx polos. Dengan angka polos, kolom
+   tetap dipaksa selebar itu walau layarnya lebih sempit, dan seluruh halaman
+   jadi bisa digeser mendatar di ponsel kecil -- cacat yang tidak pernah
+   terlihat di layar penguji dan selalu terlihat di layar pembeli. */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); gap: 28px; }
 
 .kartu { display: flex; flex-direction: column; text-decoration: none; }
 
@@ -763,7 +792,7 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
 
 .alasan {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
   gap: 32px;
   padding: 64px 0;
   border-top: 1px solid var(--garis);
@@ -787,7 +816,7 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
 
 .testimoni {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: 24px;
 }
 
@@ -820,7 +849,7 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
 
 .lokasi {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
   gap: 24px;
 }
 
@@ -1095,7 +1124,26 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
    Keranjang
    --------------------------------------------------------------------------- */
 
-.tautan-keranjang { position: relative; }
+.tautan-keranjang { position: relative; display: inline-flex; align-items: center; }
+.ikon-keranjang { display: none; width: 20px; height: 20px; }
+
+/* Menu lima kata tidak muat di layar ponsel, dan menu yang tidak muat membuat
+   seluruh halaman bisa digeser mendatar. Kata "Keranjang" diganti ikon; tidak
+   ada tautan yang dihilangkan, karena tautan yang disembunyikan di ponsel
+   adalah tautan yang tidak pernah ditemukan pembeli yang justru paling banyak
+   datang dari ponsel. */
+@media (max-width: 700px) {
+  .ikon-keranjang { display: block; }
+  .teks-keranjang {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .jumlah-keranjang { margin-left: 3px; }
+}
 
 /* display: inline-grid mengalahkan [hidden] bawaan peramban, jadi tanpa aturan
    ini lencana bertuliskan 0 tetap tergambar di keranjang yang kosong. Sama
@@ -1110,8 +1158,12 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
   margin-left: 6px;
   padding: 0 5px;
   border-radius: 999px;
-  background: var(--amber);
-  color: #FFFFFF;
+  /* Bukan amber. Amber adalah warna tengah: putih di atasnya cuma 2,9:1 di mode
+     gelap dan 4,4:1 di mode terang, dua-duanya di bawah ambang keterbacaan, dan
+     angka sekecil ini justru yang paling butuh terbaca. tinta/kertas berbalik
+     bersama temanya, jadi kontrasnya tinggi di kedua mode. */
+  background: var(--tinta);
+  color: var(--kertas);
   font-family: var(--data);
   font-size: 11px;
   line-height: 1;
@@ -1198,6 +1250,16 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
   .k-baris img, .k-nofoto { width: 64px; height: 64px; }
   .k-jumlah { grid-column: 2; }
   .k-harga { grid-column: 3; }
+}
+
+/* Di layar paling sempit, baris "Rp177.200 / bungkus" yang membuat kolom harga
+   melebar sampai barisnya tidak muat. Yang dibuang keterangan harga satuannya,
+   bukan subtotalnya -- yang pertama bisa dihitung sendiri, yang kedua tidak. */
+@media (max-width: 400px) {
+  .k-baris { grid-template-columns: 56px 1fr auto; gap: 12px; }
+  .k-baris img, .k-nofoto { width: 56px; height: 56px; }
+  .k-harga .plat { display: none; }
+  .k-buang { padding: 4px 2px; }
 }
 
 /* ---------------------------------------------------------------------------
@@ -1306,8 +1368,8 @@ a.spanduk-bingkai:hover img { opacity: 0.94; }
 
 /* Merah di garis kotaknya, bukan cuma di tulisan bawahnya: yang dicari mata
    saat formulir ditolak adalah kotak mana, bukan kalimat mana. */
-.co-kolom.salah input, .co-kolom.salah select, .co-kolom.salah textarea { border-color: #C0392B; }
-.co-galat { margin: 6px 0 0; font-size: 13px; color: #C0392B; }
+.co-kolom.salah input, .co-kolom.salah select, .co-kolom.salah textarea { border-color: var(--merah); }
+.co-galat { margin: 6px 0 0; font-size: 13px; color: var(--merah); }
 
 .co-samping {
   background: var(--naik);

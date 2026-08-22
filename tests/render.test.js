@@ -667,3 +667,37 @@ test('spanduk bergulir muncul di bawah bagian Eksklusif', function () {
   }));
   assert.ok(html.indexOf('class="eksklusif"') < html.indexOf('class="spanduk-geser"'));
 });
+
+// Tiap halaman butuh tepat satu h1. Pembaca layar memakainya untuk melompat ke
+// isi utama, dan mesin pencari memakainya untuk tahu halaman itu tentang apa.
+// /shop/ dan halaman kategori sempat tidak punya sama sekali: judulnya dipasang
+// sebagai h2 karena bentuknya meniru kepala bagian di halaman depan, dan di
+// sana h1-nya memang milik hero.
+function hitungTag(html, tag) {
+  return (html.match(new RegExp('<' + tag + '[ >]', 'g')) || []).length;
+}
+
+test('halaman katalog punya tepat satu h1', function () {
+  const html = RENDER.shop(data(), null);
+  assert.strictEqual(hitungTag(html, 'h1'), 1);
+  assert.match(html, /<h1>Semua kopi yang kami sangrai<\/h1>/);
+});
+
+test('halaman kategori punya tepat satu h1 berisi nama kategorinya', function () {
+  const d = data();
+  const html = RENDER.shop(d, d.kategori[0]);
+  assert.strictEqual(hitungTag(html, 'h1'), 1);
+  assert.match(html, /<h1>Kopi Arabika<\/h1>/);
+});
+
+test('halaman produk tetap punya tepat satu h1', function () {
+  const d = data();
+  assert.strictEqual(hitungTag(RENDER.produk(d, d.produk[0]), 'h1'), 1);
+});
+
+test('halaman depan punya tepat satu h1, dan itu milik hero', function () {
+  const html = RENDER.beranda(data({
+    seksi: [seksi({ id: 1, blok: 'hero', judul: 'GEMEOS COFFEE' })]
+  }));
+  assert.strictEqual(hitungTag(html, 'h1'), 1);
+});

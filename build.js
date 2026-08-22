@@ -263,9 +263,18 @@ function halaman(opsi) {
         // Jumlah barang diisi JavaScript dari keranjang di peramban ini. Dibangun
         // kosong karena berkas HTML yang sama dikirim ke semua orang -- angka
         // apa pun yang dicetak di sini akan salah bagi hampir semuanya.
+        // Di ponsel yang tampil ikonnya saja. Dengan lima tautan berupa kata,
+        // menunya jadi lebih lebar dari layar dan seluruh situs bisa digeser
+        // mendatar -- dan yang hilang bukan cuma kerapian: halaman yang
+        // meleset ke samping membuat tombol di tepi kanan sulit dijangkau.
         '<a class="tautan-keranjang" href="/keranjang/"' +
           (opsi.alamat === '/keranjang/' ? ' aria-current="page"' : '') + '>' +
-          'Keranjang<span class="jumlah-keranjang" id="jumlah-keranjang" hidden></span></a>' +
+          '<svg class="ikon-keranjang" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+            'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+            '<path d="M5 8h14l-1 11.2A2 2 0 0 1 16 21H8a2 2 0 0 1-2-1.8Z"/>' +
+            '<path d="M9 11V7a3 3 0 0 1 6 0v4"/></svg>' +
+          '<span class="teks-keranjang">Keranjang</span>' +
+          '<span class="jumlah-keranjang" id="jumlah-keranjang" hidden></span></a>' +
         tombolTema() +
       '</nav>' +
     '</div></header>\n' +

@@ -315,7 +315,11 @@
 
     return '<div class="wrap">' +
       '<section id="katalog">' +
-        '<div class="kepala-bagian"><div><span class="plat">Katalog</span><h2>' + esc(judul) + '</h2></div></div>' +
+        // h1, bukan h2, walau bentuknya sama dengan kepala bagian di halaman
+        // depan. Di sana h1 milik hero; di sini tidak ada hero, dan halaman
+        // tanpa h1 tidak memberi tahu pembaca layar maupun mesin pencari
+        // tentang apa isinya. Ukurannya disamakan lewat CSS.
+        '<div class="kepala-bagian"><div><span class="plat">Katalog</span><h1>' + esc(judul) + '</h1></div></div>' +
         saringan(data, kategoriAktif) +
         // hidden sampai JavaScript menyalakannya: kotak cari yang tidak bisa
         // mencari lebih buruk daripada kotak yang tidak ada.
