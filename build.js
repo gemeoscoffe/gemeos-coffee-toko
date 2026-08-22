@@ -71,15 +71,17 @@ async function ambil(tabel, kueri) {
 }
 
 async function ambilKatalog() {
-  const [produk, varian, foto, seksi] = await Promise.all([
+  const [produk, varian, foto, seksi, kategori, produkKategori] = await Promise.all([
     ambil('web_produk', 'select=*&order=urutan,nama'),
     ambil('web_varian', 'select=*&order=produk_id,urutan,label_ukuran'),
     ambil('web_foto', 'select=*&order=produk_id,urutan'),
-    ambil('web_seksi', 'select=*&order=halaman,blok,urutan')
+    ambil('web_seksi', 'select=*&order=halaman,blok,urutan'),
+    ambil('web_kategori', 'select=*&order=urutan,nama'),
+    ambil('web_produk_kategori', 'select=*')
   ]);
   // Kunci publishable hanya melihat baris aktif -- itu kebijakan RLS, bukan
   // penyaringan di sini. Yang disembunyikan pemilik tidak pernah sampai.
-  return { produk, varian, foto, seksi, basisFoto: BASIS_FOTO };
+  return { produk, varian, foto, seksi, kategori, produkKategori, basisFoto: BASIS_FOTO };
 }
 
 // ---------------------------------------------------------------------------
@@ -300,7 +302,7 @@ function jsonldProduk(data, p) {
     description: RENDER.ringkasan(data, p),
     url: BASIS + '/produk/' + p.slug + '/',
     brand: { '@type': 'Brand', name: NAMA_TOKO },
-    category: p.kategori
+    category: RENDER.kategoriProduk(data, p.id).map(function (k) { return k.nama; }).join(', ') || undefined
   };
   // Google mengambil gambar ini untuk hasil pencarian, jadi yang diberikan
   // ukuran terbesar yang ada, bukan yang dipakai kartu katalog.
@@ -415,19 +417,20 @@ async function bangun() {
   }));
   alamat.push({ url: '/tentang/', prioritas: '0.5' });
 
-  // Kategori
+  // Kategori. Slugnya diambil dari barisnya, bukan dihitung ulang dari namanya:
+  // mengganti nama kategori tidak boleh diam-diam memindahkan alamatnya dan
+  // membuang peringkat yang sudah menempel di sana.
   for (const k of RENDER.kategoriDaftar(data)) {
-    const s = RENDER.slugKategori(k);
-    const isi = data.produk.filter(function (p) { return p.kategori === k; });
-    tulis('/kategori/' + s + '/', halaman({
-      alamat: '/kategori/' + s + '/',
-      judul: 'Kopi ' + k + ' — Gemeos Coffee',
-      deskripsi: 'Pilihan kopi ' + k + ' dari Gemeos Coffee: ' +
+    const isi = RENDER.produkKategori(data, k.id);
+    tulis('/kategori/' + k.slug + '/', halaman({
+      alamat: '/kategori/' + k.slug + '/',
+      judul: 'Kopi ' + k.nama + ' — Gemeos Coffee',
+      deskripsi: 'Pilihan kopi ' + k.nama + ' dari Gemeos Coffee: ' +
                  isi.map(function (p) { return p.nama; }).join(', ') + '.',
       isi: RENDER.shop(data, k),
       gambar: isi.length ? fotoPertama(isi[0]) : null
     }));
-    alamat.push({ url: '/kategori/' + s + '/', prioritas: '0.6' });
+    alamat.push({ url: '/kategori/' + k.slug + '/', prioritas: '0.6' });
   }
 
   // Produk

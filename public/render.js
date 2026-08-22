@@ -148,12 +148,35 @@
       '</a>';
   }
 
+  // Kategori datang dari tabelnya sendiri, bukan disimpulkan dari produk. Itu
+  // yang membuat urutannya bisa ditentukan pemilik -- chip paling kiri paling
+  // sering diklik -- dan membuat satu produk bisa berada di beberapa kategori.
+  //
+  // Kategori tanpa produk tidak digambar. Bukan karena salah, tapi karena chip
+  // yang mengantar ke halaman kosong terasa seperti toko yang kehabisan barang.
   function kategoriDaftar(data) {
-    const keluar = [];
-    data.produk.forEach(function (p) {
-      if (p.kategori && keluar.indexOf(p.kategori) === -1) keluar.push(p.kategori);
+    return (data.kategori || []).filter(function (k) {
+      return produkKategori(data, k.id).length > 0;
     });
-    return keluar;
+  }
+
+  // Produk di satu kategori, urutannya mengikuti urutan produk -- bukan urutan
+  // baris penghubung, yang tidak berarti apa-apa bagi pembeli.
+  function produkKategori(data, kategoriId) {
+    const pasangan = (data.produkKategori || []).filter(function (x) {
+      return x.kategori_id === kategoriId;
+    }).map(function (x) { return x.produk_id; });
+    return data.produk.filter(function (p) { return pasangan.indexOf(p.id) !== -1; });
+  }
+
+  // Kategori yang memuat satu produk. Yang pertama dipakai sebagai remah dan
+  // label di halaman produk: harus ada satu yang mewakili, dan urutan yang
+  // ditentukan pemilik adalah satu-satunya urutan yang bermakna di sini.
+  function kategoriProduk(data, produkId) {
+    const punya = (data.produkKategori || []).filter(function (x) {
+      return x.produk_id === produkId;
+    }).map(function (x) { return x.kategori_id; });
+    return (data.kategori || []).filter(function (k) { return punya.indexOf(k.id) !== -1; });
   }
 
   // Saringan kategori berupa tautan ke halaman tersendiri, bukan tombol yang
@@ -162,8 +185,8 @@
   function saringan(data, aktif) {
     const semua = '<a href="/shop/"' + (aktif ? '' : ' aria-current="page"') + '>Semua</a>';
     return '<nav class="saring">' + semua + kategoriDaftar(data).map(function (k) {
-      return '<a href="/kategori/' + esc(slugKategori(k)) + '/"' +
-        (aktif === k ? ' aria-current="page"' : '') + '>' + esc(k) + '</a>';
+      return '<a href="/kategori/' + esc(k.slug) + '/"' +
+        (aktif && aktif.id === k.id ? ' aria-current="page"' : '') + '>' + esc(k.nama) + '</a>';
     }).join('') + '</nav>';
   }
 
@@ -272,10 +295,8 @@
   function shop(data, kategoriAktif) {
     if (data.produk.length === 0) return kosongTotal();
 
-    const daftar = data.produk.filter(function (p) {
-      return !kategoriAktif || p.kategori === kategoriAktif;
-    });
-    const judul = kategoriAktif ? 'Kopi ' + kategoriAktif : 'Semua kopi yang kami sangrai';
+    const daftar = kategoriAktif ? produkKategori(data, kategoriAktif.id) : data.produk;
+    const judul = kategoriAktif ? 'Kopi ' + kategoriAktif.nama : 'Semua kopi yang kami sangrai';
 
     return '<div class="wrap">' +
       '<section id="katalog">' +
@@ -521,6 +542,9 @@
   }
 
   function produk(data, p) {
+    // Satu produk bisa berada di beberapa kategori; remah dan label hanya muat
+    // satu, jadi yang dipakai yang pertama menurut urutan pilihan pemilik.
+    const utama = kategoriProduk(data, p.id)[0] || null;
     const varian = varianDari(data, p.id);
     const foto = fotoDari(data, p.id);
     const habis = produkHabis(data, p);
@@ -551,8 +575,9 @@
 
     return '' +
       '<div class="wrap">' +
-        '<nav class="remah plat"><a href="/">Beranda</a> / <a href="/kategori/' +
-          esc(slugKategori(p.kategori)) + '/">' + esc(p.kategori) + '</a> / ' + esc(p.nama) + '</nav>' +
+        '<nav class="remah plat"><a href="/">Beranda</a> / ' +
+          (utama ? '<a href="/kategori/' + esc(utama.slug) + '/">' + esc(utama.nama) + '</a> / ' : '') +
+          esc(p.nama) + '</nav>' +
         '<div class="produk-atas">' +
           '<div class="galeri">' +
             '<div class="galeri-utama" id="galeri-utama">' +
@@ -563,7 +588,7 @@
           '</div>' +
           '<div class="beli">' +
             '<div>' +
-              '<span class="plat">' + esc(p.kategori) + '</span>' +
+              (utama ? '<span class="plat">' + esc(utama.nama) + '</span>' : '') +
               '<h1>' + esc(p.nama) + '</h1>' +
             '</div>' +
             '<p class="harga-besar" id="harga-tampil">' +
@@ -602,7 +627,8 @@
     urlFoto: urlFoto, srcsetFoto: srcsetFoto, urlVideo: urlVideo, tipeVideo: tipeVideo,
     varianDari: varianDari, fotoDari: fotoDari,
     produkHabis: produkHabis, hargaTerendah: hargaTerendah,
-    kategoriDaftar: kategoriDaftar,
+    kategoriDaftar: kategoriDaftar, produkKategori: produkKategori,
+    kategoriProduk: kategoriProduk,
     seksiDari: seksiDari, seksiSatu: seksiSatu, seksiTerisi: seksiTerisi,
     beranda: beranda, shop: shop, tentang: tentang, produk: produk,
     MARKETPLACE: MARKETPLACE

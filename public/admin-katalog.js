@@ -16,6 +16,7 @@
  */
 
 let TOKO_PRODUK = [], TOKO_VARIAN = [], TOKO_FOTO = [];
+let TOKO_KATEGORI = [], TOKO_PK = [];
 let TOKO_PILIH = null;   // id produk yang sedang dikelola, null = tidak ada
 
 const TOKO_BUCKET = 'produk';
@@ -75,15 +76,20 @@ async function loadTokoPage() {
   const el = document.getElementById('toko-produk-table');
   el.innerHTML = '<p class="muted">Memuat...</p>';
   try {
-    const [produk, varian, foto] = await Promise.all([
+    const [produk, varian, foto, kategori, pk] = await Promise.all([
       sbSelect('web_produk', 'select=*&order=urutan,nama'),
       sbSelect('web_varian', 'select=*&order=produk_id,urutan,label_ukuran'),
-      sbSelect('web_foto', 'select=*&order=produk_id,urutan')
+      sbSelect('web_foto', 'select=*&order=produk_id,urutan'),
+      sbSelect('web_kategori', 'select=*&order=urutan,nama'),
+      sbSelect('web_produk_kategori', 'select=*')
     ]);
     TOKO_PRODUK = produk;
     TOKO_VARIAN = varian;
     TOKO_FOTO = foto;
+    TOKO_KATEGORI = kategori;
+    TOKO_PK = pk;
     renderTokoProduk();
+    renderTokoKategori();
     renderTokoKelola();
   } catch (err) {
     el.innerHTML = '<p class="muted" style="color:var(--red)">Gagal memuat: ' + esc(err.message) + '</p>';
@@ -115,43 +121,181 @@ function tokoStokSel(nilai) {
   return esc(String(nilai)) + ' unit';
 }
 
-// Kategori bukan tabel tersendiri: yang ada hanyalah nilai teks di tiap produk,
-// dan barisan chip di /shop/ dibangun dari nilai-nilai yang berbeda. Bentuk itu
-// sengaja dipertahankan -- menambah kategori berarti mengetiknya, tanpa layar
-// pengelolaan tersendiri yang harus diurus.
+// ---------------------------------------------------------------------------
+// Kategori
+// ---------------------------------------------------------------------------
 //
-// Harganya satu: salah ketik tidak berbunyi. "Speciality" dan "Specialty"
-// menjadi dua chip di toko, dan tidak ada yang memberitahu. Datalist ini
-// menutup celah itu tanpa mengubah apa pun di database -- yang sudah dipakai
-// muncul sebagai saran, yang baru tetap boleh diketik.
-function tokoKategoriTerpakai() {
-  const keluar = [];
-  TOKO_PRODUK.forEach(function(p) {
-    const k = (p.kategori || '').trim();
-    if (k && keluar.indexOf(k) === -1) keluar.push(k);
-  });
-  return keluar.sort(function(a, b) { return a.localeCompare(b, 'id'); });
+// Satu produk boleh berada di beberapa kategori, jadi hubungannya disimpan di
+// tabel penghubung web_produk_kategori, bukan sebagai teks di produk. Kolom
+// lama web_produk.kategori tidak lagi ditulis dari sini; ia masih ada di
+// database sampai migrasi berikutnya membuangnya.
+
+function tokoKategoriDari(produkId) {
+  const punya = TOKO_PK.filter(function(x) { return x.produk_id === produkId; })
+    .map(function(x) { return x.kategori_id; });
+  return TOKO_KATEGORI.filter(function(k) { return punya.indexOf(k.id) !== -1; });
 }
 
-function isiDatalistKategori() {
-  document.querySelectorAll('datalist#toko-kategori-ada, datalist.toko-kategori-ada')
-    .forEach(function(dl) {
-      dl.innerHTML = tokoKategoriTerpakai().map(function(k) {
-        return '<option value="' + esc(k) + '">';
-      }).join('');
+function tokoProdukDiKategori(kategoriId) {
+  return TOKO_PK.filter(function(x) { return x.kategori_id === kategoriId; }).length;
+}
+
+function renderTokoKategori() {
+  const el = document.getElementById('toko-kat-table');
+  if (!el) return;
+
+  if (TOKO_KATEGORI.length === 0) {
+    el.innerHTML = '<p class="muted">Belum ada kategori. Tambahkan yang pertama di atas.</p>';
+    return;
+  }
+
+  el.innerHTML = '<div class="table-scroll"><table><thead><tr>' +
+    '<th>Nama</th><th>Alamat</th><th class="num">Urutan</th><th class="num">Produk</th>' +
+    '<th>Tampil di Toko</th><th class="num">Aksi</th></tr></thead><tbody>' +
+    TOKO_KATEGORI.map(function(k) {
+      const jumlah = tokoProdukDiKategori(k.id);
+      return '<tr>' +
+        '<td><input class="kat-nama" data-id="' + k.id + '" value="' + esc(k.nama) + '" style="width:200px"></td>' +
+        '<td><code>/kategori/' + esc(k.slug) + '/</code></td>' +
+        '<td class="num"><input class="kat-urutan" data-id="' + k.id + '" type="number" value="' +
+          (k.urutan || 0) + '" style="width:74px"></td>' +
+        '<td class="num">' + jumlah + (jumlah === 0 ? ' <span class="muted">(tidak digambar)</span>' : '') + '</td>' +
+        '<td><label class="toko-switch"><input type="checkbox" class="kat-aktif" data-id="' + k.id + '"' +
+          (k.aktif ? ' checked' : '') + '> ' + (k.aktif ? 'Tampil' : 'Disembunyikan') + '</label></td>' +
+        '<td class="num"><button class="btn-secondary kat-hapus" data-id="' + k.id + '">Hapus</button></td></tr>';
+    }).join('') + '</tbody></table></div>';
+
+  wireTokoKategori();
+}
+
+function wireTokoKategori() {
+  const status = document.getElementById('toko-kat-status');
+
+  document.querySelectorAll('.kat-nama').forEach(function(inp) {
+    inp.addEventListener('change', function() {
+      simpanKolomKategori(Number(this.dataset.id), 'nama', this.value.trim(), status);
     });
+  });
+
+  document.querySelectorAll('.kat-urutan').forEach(function(inp) {
+    inp.addEventListener('change', function() {
+      simpanKolomKategori(Number(this.dataset.id), 'urutan', Number(this.value) || 0, status);
+    });
+  });
+
+  document.querySelectorAll('.kat-aktif').forEach(function(box) {
+    box.addEventListener('change', function() {
+      simpanKolomKategori(Number(this.dataset.id), 'aktif', this.checked, status);
+    });
+  });
+
+  document.querySelectorAll('.kat-hapus').forEach(function(btn) {
+    btn.addEventListener('click', function() { hapusTokoKategori(Number(this.dataset.id)); });
+  });
+}
+
+async function simpanKolomKategori(id, kolom, nilai, status) {
+  if (kolom === 'nama' && !nilai) {
+    tokoStatus(status, false, 'Nama kategori tidak boleh kosong.');
+    await loadTokoPage();
+    return;
+  }
+  const badan = {};
+  badan[kolom] = nilai;
+  try {
+    // Slug sengaja tidak ikut diperbarui saat nama berganti. Alamat yang
+    // berubah memutus tautan yang sudah dibagikan dan membuang peringkat yang
+    // menempel padanya -- dan nama kategori jauh lebih sering dirapikan
+    // daripada alamatnya benar-benar perlu pindah.
+    await sbWrite('PATCH', 'web_kategori', 'id=eq.' + id, badan);
+    tokoStatus(status, true, 'Tersimpan.');
+    await loadTokoPage();
+  } catch (err) {
+    tokoStatus(status, false, err.message);
+    await loadTokoPage();
+  }
+}
+
+async function tambahTokoKategori() {
+  const status = document.getElementById('toko-kat-status');
+  const nama = document.getElementById('toko-kat-nama').value.trim();
+  if (!nama) { tokoStatus(status, false, 'Nama kategori wajib diisi.'); return; }
+
+  const slug = tokoSlug(nama);
+  if (!slug) { tokoStatus(status, false, 'Nama kategori harus memuat huruf atau angka.'); return; }
+  if (TOKO_KATEGORI.some(function(k) { return k.slug === slug; })) {
+    tokoStatus(status, false, 'Sudah ada kategori dengan alamat /kategori/' + slug + '/.');
+    return;
+  }
+
+  try {
+    await sbWrite('POST', 'web_kategori', '', {
+      nama: nama,
+      slug: slug,
+      urutan: Number(document.getElementById('toko-kat-urutan').value) || 0,
+      aktif: true
+    });
+    document.getElementById('toko-kat-nama').value = '';
+    tokoStatus(status, true, nama + ' ditambahkan. Pilih produknya lewat tombol Kelola.');
+    await loadTokoPage();
+  } catch (err) {
+    tokoStatus(status, false, err.message);
+  }
+}
+
+async function hapusTokoKategori(id) {
+  const k = TOKO_KATEGORI.find(function(x) { return x.id === id; });
+  if (!k) return;
+  const jumlah = tokoProdukDiKategori(id);
+  const pesan = jumlah
+    ? 'Hapus kategori ' + k.nama + '? ' + jumlah + ' produk akan kehilangan kategori ini. Produknya sendiri tidak ikut terhapus.'
+    : 'Hapus kategori ' + k.nama + '?';
+  if (!confirm(pesan)) return;
+
+  const status = document.getElementById('toko-kat-status');
+  try {
+    // Baris penghubungnya ikut terhapus lewat on delete cascade, jadi tidak
+    // perlu dibersihkan sendiri di sini.
+    await sbDelete('web_kategori', 'id=eq.' + id);
+    tokoStatus(status, true, 'Kategori ' + k.nama + ' dihapus.');
+    await loadTokoPage();
+  } catch (err) {
+    tokoStatus(status, false, err.message);
+  }
+}
+
+async function setKategoriProduk(produkId, kategoriId, masuk) {
+  const status = document.getElementById('toko-detail-status');
+  try {
+    if (masuk) {
+      await sbWrite('POST', 'web_produk_kategori', '', { produk_id: produkId, kategori_id: kategoriId });
+    } else {
+      await sbDelete('web_produk_kategori',
+        'produk_id=eq.' + produkId + '&kategori_id=eq.' + kategoriId);
+    }
+    if (status) tokoStatus(status, true, 'Kategori diperbarui.');
+    await loadTokoPage();
+  } catch (err) {
+    if (status) tokoStatus(status, false, err.message);
+    await loadTokoPage();
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Daftar produk
 // ---------------------------------------------------------------------------
 
+// Kategori sebuah produk bisa lebih dari satu, dan bisa juga belum ada. Yang
+// belum berkategori ditandai jelas: produk itu tidak muncul di satu pun tombol
+// filter, dan itu tidak terlihat dari mana pun kecuali dari sini.
+function tokoKategoriSel(produkId) {
+  const punya = tokoKategoriDari(produkId);
+  if (punya.length === 0) return '<span class="muted">belum ada</span>';
+  return punya.map(function(k) { return esc(k.nama); }).join(', ');
+}
+
 function renderTokoProduk() {
   const el = document.getElementById('toko-produk-table');
-
-  // Digambar ulang setiap daftar berubah: kategori baru yang barusan diketik
-  // harus langsung jadi saran, bukan setelah halaman dimuat ulang.
-  isiDatalistKategori();
 
   if (TOKO_PRODUK.length === 0) {
     el.innerHTML = '<p class="muted">Belum ada produk di katalog toko. Tambahkan yang pertama di atas.</p>';
@@ -165,7 +309,7 @@ function renderTokoProduk() {
       const varian = tokoVarianDari(p.id);
       return '<tr' + (p.id === TOKO_PILIH ? ' class="baris-aktif"' : '') + '>' +
         '<td><b>' + esc(p.nama) + '</b><div class="muted" style="font-size:12px">/' + esc(p.slug) + '</div></td>' +
-        '<td>' + esc(p.kategori) + '</td>' +
+        '<td>' + tokoKategoriSel(p.id) + '</td>' +
         '<td class="num">' + varian.length + '</td>' +
         '<td class="num">' + (varian.length ? tokoStokSel(tokoStokTerendah(p.id)) : '<span class="muted">&ndash;</span>') + '</td>' +
         '<td><label class="toko-switch"><input type="checkbox" class="toko-aktif" data-id="' + p.id + '"' +
@@ -192,10 +336,8 @@ function renderTokoProduk() {
 async function tambahTokoProduk() {
   const status = document.getElementById('toko-add-status');
   const nama = document.getElementById('toko-new-nama').value.trim();
-  const kategori = document.getElementById('toko-new-kategori').value.trim();
 
   if (!nama) { tokoStatus(status, false, 'Nama produk wajib diisi.'); return; }
-  if (!kategori) { tokoStatus(status, false, 'Kategori wajib diisi -- dipakai untuk filter di toko.'); return; }
 
   const slug = tokoSlug(nama);
   if (!slug) { tokoStatus(status, false, 'Nama produk harus memuat huruf atau angka.'); return; }
@@ -208,14 +350,13 @@ async function tambahTokoProduk() {
     const baru = await sbWrite('POST', 'web_produk', '', {
       slug: slug,
       nama: nama,
-      kategori: kategori,
       ringkas: document.getElementById('toko-new-ringkas').value.trim() || null,
       urutan: TOKO_PRODUK.length,
       aktif: false   // produk baru belum punya varian dan foto -- jangan langsung tampil
     });
     document.getElementById('toko-new-nama').value = '';
     document.getElementById('toko-new-ringkas').value = '';
-    tokoStatus(status, true, '"' + nama + '" ditambahkan. Isi varian dan fotonya, baru tampilkan di toko.');
+    tokoStatus(status, true, nama + ' ditambahkan. Isi varian, foto, dan kategorinya, baru tampilkan di toko.');
     TOKO_PILIH = baru[0] ? baru[0].id : null;
     await loadTokoPage();
   } catch (err) {
@@ -325,10 +466,6 @@ function renderTokoKelola() {
       '<div id="toko-foto-list" style="margin-top:12px">' + renderTokoFotoList(p) + '</div>' +
     '</div>';
 
-  // Datalist di form detail baru saja dibuat ulang bersama seluruh panel, jadi
-  // isinya kosong sampai diisi lagi di sini.
-  isiDatalistKategori();
-
   wireTokoKelola(p);
 }
 
@@ -337,24 +474,16 @@ function renderTokoDetailForm(p) {
     return '<div style="' + (lebar || 'flex:1;min-width:180px') + '"><label>' + label + '</label>' +
       '<input id="' + id + '" value="' + esc(nilai || '') + '"></div>';
   };
-  // Sama seperti isi(), ditambah daftar saran. Datalist-nya dibuat di sini juga
-  // karena form ini dirakit ulang tiap kali produk lain dipilih, dan id yang
-  // sama tidak boleh muncul dua kali di halaman.
-  const isiSaran = function(id, label, nilai, lebar, dl) {
-    return '<div style="' + (lebar || 'flex:1;min-width:180px') + '"><label>' + label + '</label>' +
-      '<input id="' + id + '" list="' + dl + '-e" value="' + esc(nilai || '') + '">' +
-      '<datalist id="' + dl + '-e" class="toko-kategori-ada"></datalist></div>';
-  };
   return '<div class="row">' +
       isi('toko-e-nama', 'Nama Produk', p.nama) +
       isi('toko-e-slug', 'Alamat (slug)', p.slug, 'width:200px') +
-      isiSaran('toko-e-kategori', 'Kategori', p.kategori, 'width:160px', 'toko-kategori-ada') +
       '<div style="width:110px"><label>Urutan</label><input id="toko-e-urutan" type="number" value="' + (p.urutan || 0) + '"></div>' +
     '</div>' +
     '<div class="row">' +
       '<div style="flex:1;min-width:260px"><label>Ringkas (satu kalimat di kartu katalog)</label>' +
         '<input id="toko-e-ringkas" value="' + esc(p.ringkas || '') + '"></div>' +
     '</div>' +
+    renderTokoKategoriPilih(p) +
     '<div class="row">' +
       '<div style="flex:1;min-width:260px"><label>Pilihan Gilingan (pisahkan dengan koma)</label>' +
         '<input id="toko-e-giling" value="' + esc((p.opsi_giling || []).join(', ')) +
@@ -376,6 +505,27 @@ function renderTokoDetailForm(p) {
     '</div>' +
     '<button class="btn-primary" id="toko-e-simpan">Simpan Detail</button>' +
     '<p id="toko-e-status" style="margin-top:8px;font-size:13px"></p>';
+}
+
+// Kategori disimpan begitu kotaknya dicentang, tidak menunggu tombol Simpan
+// Detail. Kotak centang yang tampak sudah tercentang tapi belum tersimpan
+// adalah kebohongan kecil yang baru ketahuan setelah Terbitkan.
+function renderTokoKategoriPilih(p) {
+  if (TOKO_KATEGORI.length === 0) {
+    return '<div class="row"><p class="muted">Belum ada kategori. Buat dulu di kartu ' +
+      '<b>Kategori</b> di atas.</p></div>';
+  }
+  const punya = tokoKategoriDari(p.id).map(function(k) { return k.id; });
+  return '<div class="row"><div style="flex:1"><label>Kategori</label>' +
+    '<div class="kat-pilih">' +
+      TOKO_KATEGORI.map(function(k) {
+        return '<label class="kat-kotak"><input type="checkbox" class="kat-produk" data-kat="' + k.id + '"' +
+          (punya.indexOf(k.id) !== -1 ? ' checked' : '') + '> ' + esc(k.nama) +
+          (k.aktif ? '' : ' <span class="muted">(disembunyikan)</span>') + '</label>';
+      }).join('') +
+    '</div>' +
+    '<p class="note" style="margin-top:6px">Boleh lebih dari satu. Tersimpan begitu dicentang.</p>' +
+    '</div></div>';
 }
 
 function renderTokoVarianForm() {
@@ -456,6 +606,12 @@ function wireTokoKelola(p) {
   });
 
   document.getElementById('toko-e-simpan').addEventListener('click', function() { simpanTokoDetail(p.id); });
+
+  document.querySelectorAll('.kat-produk').forEach(function(box) {
+    box.addEventListener('change', function() {
+      setKategoriProduk(p.id, Number(this.dataset.kat), this.checked);
+    });
+  });
   document.getElementById('toko-v-add').addEventListener('click', function() { tambahTokoVarian(p.id); });
   document.getElementById('toko-foto-file').addEventListener('change', function() { unggahTokoFoto(p.id, this); });
 
@@ -505,11 +661,9 @@ async function simpanTokoDetail(id) {
 
   const nama = nilai('nama');
   const slug = tokoSlug(nilai('slug'));
-  const kategori = nilai('kategori');
 
   if (!nama) { tokoStatus(status, false, 'Nama produk wajib diisi.'); return; }
   if (!slug) { tokoStatus(status, false, 'Alamat (slug) wajib diisi.'); return; }
-  if (!kategori) { tokoStatus(status, false, 'Kategori wajib diisi.'); return; }
   if (TOKO_PRODUK.some(function(p) { return p.slug === slug && p.id !== id; })) {
     tokoStatus(status, false, 'Alamat /' + slug + ' sudah dipakai produk lain.');
     return;
@@ -519,7 +673,6 @@ async function simpanTokoDetail(id) {
     await sbWrite('PATCH', 'web_produk', 'id=eq.' + id, {
       nama: nama,
       slug: slug,
-      kategori: kategori,
       urutan: Number(document.getElementById('toko-e-urutan').value) || 0,
       ringkas: nilai('ringkas') || null,
       origin: nilai('origin') || null,
@@ -903,5 +1056,6 @@ async function bangunUlangToko() {
 
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('toko-add-btn').addEventListener('click', tambahTokoProduk);
+  document.getElementById('toko-kat-add').addEventListener('click', tambahTokoKategori);
   document.getElementById('toko-bangun-btn').addEventListener('click', bangunUlangToko);
 });

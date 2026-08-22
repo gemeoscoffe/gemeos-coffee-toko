@@ -18,7 +18,9 @@ const tokoStokTerendah = ambil(ctx, 'tokoStokTerendah');
 const renderTokoVarianTable = ambil(ctx, 'renderTokoVarianTable');
 const tokoDaftarGiling = ambil(ctx, 'tokoDaftarGiling');
 const renderTokoFotoList = ambil(ctx, 'renderTokoFotoList');
-const tokoKategoriTerpakai = ambil(ctx, 'tokoKategoriTerpakai');
+const tokoKategoriDari = ambil(ctx, 'tokoKategoriDari');
+const tokoProdukDiKategori = ambil(ctx, 'tokoProdukDiKategori');
+const tokoKategoriSel = ambil(ctx, 'tokoKategoriSel');
 
 function varian(isi) {
   return Object.assign({
@@ -173,35 +175,46 @@ test('produk tanpa foto tidak menampilkan grid kosong', function() {
   assert.match(renderTokoFotoList({ id: 1 }), /Belum ada foto/);
 });
 
-// Kategori tidak punya tabel sendiri: yang ada hanya teks di tiap produk, dan
-// chip di /shop/ dibangun dari nilai yang berbeda-beda. Artinya satu salah
-// ketik menambah kategori baru tanpa berbunyi, dan daftar saran inilah satu-
-// satunya yang mencegahnya.
-test('daftar kategori berisi yang sudah dipakai, tanpa kembar dan urut', function() {
-  pasang(ctx, 'TOKO_PRODUK', [
-    { id: 1, kategori: 'Specialty' },
-    { id: 2, kategori: 'Commodity Blend' },
-    { id: 3, kategori: 'Specialty' },
-    { id: 4, kategori: 'Arabika' }
+// Kategori punya tabelnya sendiri sejak migrasi 0046, dan hubungannya banyak-
+// ke-banyak. Yang diuji di sini bagian yang tidak berbunyi kalau salah: produk
+// yang tidak masuk kategori mana pun hilang dari semua tombol filter tanpa ada
+// yang memberitahu, dan itu hanya terlihat dari daftar produk di /admin.
+test('kategori sebuah produk mengikuti urutan yang ditentukan pemilik', function() {
+  pasang(ctx, 'TOKO_KATEGORI', [
+    { id: 1, nama: 'Specialty', urutan: 20, aktif: true },
+    { id: 2, nama: 'Commodity Blend', urutan: 10, aktif: true }
   ]);
-  assert.deepStrictEqual(Array.from(tokoKategoriTerpakai()),
-    ['Arabika', 'Commodity Blend', 'Specialty']);
+  pasang(ctx, 'TOKO_PK', [
+    { produk_id: 7, kategori_id: 1 },
+    { produk_id: 7, kategori_id: 2 }
+  ]);
+  assert.deepStrictEqual(
+    Array.from(tokoKategoriDari(7)).map(function(k) { return k.nama; }),
+    ['Specialty', 'Commodity Blend']);
 });
 
-test('kategori kosong atau berisi spasi saja tidak ikut jadi saran', function() {
-  pasang(ctx, 'TOKO_PRODUK', [
-    { id: 1, kategori: 'Arabika' },
-    { id: 2, kategori: '' },
-    { id: 3, kategori: '   ' },
-    { id: 4, kategori: null }
-  ]);
-  assert.deepStrictEqual(Array.from(tokoKategoriTerpakai()), ['Arabika']);
+test('produk tanpa kategori ditandai, bukan dibiarkan kosong', function() {
+  pasang(ctx, 'TOKO_KATEGORI', [{ id: 1, nama: 'Specialty', urutan: 10, aktif: true }]);
+  pasang(ctx, 'TOKO_PK', []);
+  assert.match(tokoKategoriSel(7), /belum ada/);
 });
 
-test('spasi di ujung tidak membuat kategori kembar', function() {
-  pasang(ctx, 'TOKO_PRODUK', [
-    { id: 1, kategori: 'Specialty' },
-    { id: 2, kategori: '  Specialty  ' }
+test('produk di beberapa kategori disebut semuanya', function() {
+  pasang(ctx, 'TOKO_KATEGORI', [
+    { id: 1, nama: 'Specialty', urutan: 10, aktif: true },
+    { id: 2, nama: 'New Release', urutan: 20, aktif: true }
   ]);
-  assert.deepStrictEqual(Array.from(tokoKategoriTerpakai()), ['Specialty']);
+  pasang(ctx, 'TOKO_PK', [{ produk_id: 7, kategori_id: 1 }, { produk_id: 7, kategori_id: 2 }]);
+  assert.strictEqual(tokoKategoriSel(7), 'Specialty, New Release');
+});
+
+test('jumlah produk per kategori dihitung dari baris penghubung', function() {
+  pasang(ctx, 'TOKO_KATEGORI', [{ id: 1, nama: 'Specialty', urutan: 10, aktif: true }]);
+  pasang(ctx, 'TOKO_PK', [
+    { produk_id: 7, kategori_id: 1 },
+    { produk_id: 8, kategori_id: 1 },
+    { produk_id: 9, kategori_id: 2 }
+  ]);
+  assert.strictEqual(tokoProdukDiKategori(1), 2);
+  assert.strictEqual(tokoProdukDiKategori(99), 0);
 });

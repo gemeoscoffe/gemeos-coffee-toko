@@ -429,3 +429,10 @@ td code { background: var(--hover); border: 1px solid var(--border); border-radi
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* Kotak centang kategori di panel Kelola. Dibiarkan mengalir dan membungkus:
+   jumlah kategorinya ditentukan pemilik, dan kolom tetap akan pecah begitu
+   kategorinya lebih banyak dari yang diperkirakan hari ini. */
+.kat-pilih { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 6px; }
+.kat-kotak { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+.kat-kotak input { margin: 0; }

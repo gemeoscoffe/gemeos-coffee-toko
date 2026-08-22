@@ -107,13 +107,13 @@
         <h3>Tambah Produk</h3>
         <div class="row">
           <div style="flex:1;min-width:220px"><label>Nama Produk</label><input id="toko-new-nama" placeholder="mis. Kopi Arabika Puntang Original"></div>
-          <div><label>Kategori</label><input id="toko-new-kategori" list="toko-kategori-ada" placeholder="mis. Commodity Blend" style="width:170px"><datalist id="toko-kategori-ada"></datalist></div>
           <div style="flex:1;min-width:240px"><label>Ringkas (opsional)</label><input id="toko-new-ringkas" placeholder="Satu kalimat yang tampil di kartu katalog"></div>
           <button class="btn-primary" id="toko-add-btn">Tambah</button>
         </div>
         <p class="note">
-          Produk baru selalu masuk dalam keadaan <b>disembunyikan</b> &mdash; isi dulu varian dan fotonya, baru
-          tampilkan. <b>Kategori</b> jadi tombol filter di halaman katalog.
+          Produk baru selalu masuk dalam keadaan <b>disembunyikan</b> &mdash; isi dulu varian, foto, dan
+          kategorinya, baru tampilkan. Kategori dipilih di <b>Kelola</b>, dan satu produk boleh masuk ke
+          lebih dari satu.
         </p>
         <p id="toko-add-status" style="margin-top:8px;font-size:13px"></p>
       </div>
@@ -127,6 +127,25 @@
         </p>
         <div id="toko-produk-table" class="muted" style="margin-top:12px">Memuat...</div>
         <p id="toko-produk-status" style="margin-top:10px;font-size:13px"></p>
+      </div>
+
+      <div class="card">
+        <h3>Kategori</h3>
+        <p class="card-note">
+          Tiap kategori jadi satu tombol filter di halaman katalog dan satu alamat tersendiri
+          (<code>/kategori/&lt;alamat&gt;/</code>). <b>Urutan</b> menentukan letak tombolnya dari kiri &mdash;
+          yang paling kiri paling sering diklik. Kategori tanpa produk tidak digambar di toko.
+          <b>Alamatnya tidak ikut berubah</b> saat namanya diganti: peringkat pencarian menempel ke alamat,
+          dan memindahkannya berarti memulai dari nol.
+        </p>
+        <div class="row">
+          <div style="flex:1;min-width:220px"><label>Nama Kategori Baru</label>
+            <input id="toko-kat-nama" placeholder="mis. Commodity Blend"></div>
+          <div style="width:110px"><label>Urutan</label><input id="toko-kat-urutan" type="number" value="0"></div>
+          <button class="btn-primary" id="toko-kat-add">Tambah</button>
+        </div>
+        <p id="toko-kat-status" style="margin-top:8px;font-size:13px"></p>
+        <div id="toko-kat-table" style="margin-top:12px"></div>
       </div>
 
       <div id="toko-kelola" class="hidden"></div>

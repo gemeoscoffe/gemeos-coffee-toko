@@ -28,7 +28,7 @@ function data(ubah) {
     basisFoto: BASIS,
     seksi: [],
     produk: [{
-      id: 1, slug: 'arabika-puntang', nama: 'Kopi Arabika Puntang', kategori: 'Arabika',
+      id: 1, slug: 'arabika-puntang', nama: 'Kopi Arabika Puntang',
       origin: 'Gunung Puntang, Jawa Barat', proses: null, roast: null, altitude: null,
       varietas: null, catatan_rasa: null, ringkas: null, deskripsi: null,
       opsi_giling: ['Biji', 'Gilingan Halus']
@@ -37,7 +37,12 @@ function data(ubah) {
       { id: 10, produk_id: 1, sku: '10200', label_ukuran: '200 g', harga: 63100, harga_coret: null, stok: null },
       { id: 11, produk_id: 1, sku: '10500', label_ukuran: '500 g', harga: 111900, harga_coret: null, stok: null }
     ],
-    foto: []
+    foto: [],
+    kategori: [
+      { id: 1, nama: 'Arabika', slug: 'arabika', urutan: 10, aktif: true },
+      { id: 2, nama: 'Commodity Blend', slug: 'commodity-blend', urutan: 20, aktif: true }
+    ],
+    produkKategori: [{ produk_id: 1, kategori_id: 1 }]
   };
   return Object.assign(dasar, ubah || {});
 }
@@ -97,6 +102,69 @@ test('saringan kategori berupa tautan ke alamatnya sendiri', function () {
   const html = RENDER.shop(d, null);
   assert.match(html, /href="\/kategori\/arabika\/"/);
   assert.match(html, /href="\/produk\/arabika-puntang\/"/);
+});
+
+// Slug diambil dari barisnya, bukan dihitung dari namanya. Kalau suatu saat
+// dihitung lagi, mengganti nama kategori diam-diam memindahkan alamatnya dan
+// membuang peringkat yang sudah menempel di sana.
+test('alamat kategori memakai slug tersimpan, bukan namanya', function () {
+  const d = data({
+    kategori: [{ id: 1, nama: 'Nama Baru Yang Panjang', slug: 'arabika', urutan: 10, aktif: true }],
+    produkKategori: [{ produk_id: 1, kategori_id: 1 }]
+  });
+  const html = RENDER.shop(d, null);
+  assert.match(html, /href="\/kategori\/arabika\/"/);
+  assert.match(html, /Nama Baru Yang Panjang/);
+  assert.doesNotMatch(html, /nama-baru-yang-panjang/);
+});
+
+// Chip yang mengantar ke halaman kosong terasa seperti toko kehabisan barang.
+test('kategori tanpa produk tidak digambar sebagai chip', function () {
+  const html = RENDER.shop(data(), null);
+  assert.doesNotMatch(html, /Commodity Blend/);
+});
+
+test('satu produk boleh berada di lebih dari satu kategori', function () {
+  const d = data({
+    produkKategori: [{ produk_id: 1, kategori_id: 1 }, { produk_id: 1, kategori_id: 2 }]
+  });
+  assert.deepStrictEqual(
+    Array.from(RENDER.kategoriProduk(d, 1)).map(function (k) { return k.nama; }),
+    ['Arabika', 'Commodity Blend']);
+  assert.strictEqual(RENDER.produkKategori(d, 2).length, 1);
+  const html = RENDER.shop(d, null);
+  assert.match(html, /href="\/kategori\/commodity-blend\/"/);
+});
+
+test('halaman kategori hanya memuat produk kategori itu', function () {
+  const d = data({
+    produk: [
+      { id: 1, slug: 'satu', nama: 'Kopi Satu', origin: null, proses: null, roast: null,
+        altitude: null, varietas: null, catatan_rasa: null, ringkas: null, deskripsi: null,
+        opsi_giling: [] },
+      { id: 2, slug: 'dua', nama: 'Kopi Dua', origin: null, proses: null, roast: null,
+        altitude: null, varietas: null, catatan_rasa: null, ringkas: null, deskripsi: null,
+        opsi_giling: [] }
+    ],
+    varian: [
+      { id: 10, produk_id: 1, sku: 'a', label_ukuran: '200 g', harga: 1000, harga_coret: null, stok: null },
+      { id: 11, produk_id: 2, sku: 'b', label_ukuran: '200 g', harga: 2000, harga_coret: null, stok: null }
+    ],
+    produkKategori: [{ produk_id: 1, kategori_id: 1 }, { produk_id: 2, kategori_id: 2 }]
+  });
+  const html = RENDER.shop(d, d.kategori[0]);
+  assert.match(html, /Kopi Satu/);
+  assert.doesNotMatch(html, /Kopi Dua/);
+  assert.match(html, /1 produk/);
+});
+
+// Produk yang belum dimasukkan ke kategori mana pun tetap harus punya halaman
+// yang utuh -- remahnya saja yang lebih pendek.
+test('produk tanpa kategori tetap menghasilkan halaman yang benar', function () {
+  const d = data({ produkKategori: [] });
+  const html = RENDER.produk(d, d.produk[0]);
+  assert.match(html, /Kopi Arabika Puntang/);
+  assert.doesNotMatch(html, /href="\/kategori\//);
 });
 
 test('katalog tanpa produk mengarahkan ke marketplace, bukan halaman kosong', function () {
