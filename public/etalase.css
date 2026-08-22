@@ -1264,3 +1264,79 @@ a.spanduk-bingkai:hover img { opacity: 0.94; }
 .spanduk-rel > * { scroll-snap-align: start; }
 .spanduk-geser .geser-panah { top: 50%; transform: translateY(-50%); }
 .spanduk-geser .geser-panah:hover { transform: translateY(-50%); }
+
+/* ---------------------------------------------------------------------------
+   Checkout
+   --------------------------------------------------------------------------- */
+
+.checkout { padding: 56px 0 80px; }
+.checkout h1 { margin: 10px 0 28px; }
+
+.co-atur { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 48px; align-items: start; }
+
+@media (max-width: 900px) {
+  /* Ringkasan pindah ke atas di layar sempit: yang perlu dilihat lebih dulu
+     adalah apa yang dibeli dan berapa totalnya, bukan kolom nama. */
+  .co-atur { grid-template-columns: 1fr; gap: 32px; }
+  .co-samping { order: -1; }
+}
+
+.co-baris { display: flex; flex-wrap: wrap; gap: 18px; }
+.co-baris > .co-kolom { flex: 1; min-width: 180px; }
+.co-kolom { margin-bottom: 18px; }
+.co-kolom label { display: block; font-size: 13px; color: var(--kabut); margin-bottom: 6px; }
+
+.co-kolom input, .co-kolom select, .co-kolom textarea {
+  width: 100%;
+  padding: 11px 13px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--tinta);
+  background: var(--kartu);
+  border: 1px solid var(--garis);
+  border-radius: 4px;
+}
+
+.co-kolom textarea { resize: vertical; }
+.co-kolom input:focus, .co-kolom select:focus, .co-kolom textarea:focus {
+  outline: 2px solid var(--amber);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+/* Merah di garis kotaknya, bukan cuma di tulisan bawahnya: yang dicari mata
+   saat formulir ditolak adalah kotak mana, bukan kalimat mana. */
+.co-kolom.salah input, .co-kolom.salah select, .co-kolom.salah textarea { border-color: #C0392B; }
+.co-galat { margin: 6px 0 0; font-size: 13px; color: #C0392B; }
+
+.co-samping {
+  background: var(--naik);
+  border: 1px solid var(--garis);
+  border-radius: 6px;
+  padding: 24px;
+  position: sticky;
+  top: 92px;
+}
+
+.co-samping h2 { margin: 0 0 16px; font-size: 20px; }
+.co-ringkas { list-style: none; margin: 0 0 20px; padding: 0; }
+
+.co-ringkas li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 7px 0;
+  font-size: 14px;
+}
+
+.co-ringkas li span { color: var(--kabut); }
+.co-ringkas .co-antara { border-top: 1px solid var(--garis); margin-top: 8px; padding-top: 12px; }
+.co-ringkas .co-total { border-top: 1px solid var(--garis); margin-top: 6px; padding-top: 12px; font-size: 17px; }
+.co-ringkas .co-total b { font-family: var(--serif); font-size: 20px; }
+
+.co-samping .tombol { width: 100%; text-align: center; }
+.co-catatan { margin: 12px 0 0; font-size: 13px; color: var(--kabut); }
+
+.k-lewat { margin: 14px 0 0; font-size: 13px; }
+.k-lewat a { color: var(--kabut); }

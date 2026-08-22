@@ -48,6 +48,16 @@ test('zona yang dimatikan tidak dipakai', function () {
   assert.strictEqual(RENDER.zonaUntuk(ZONA, 'Papua'), null);
 });
 
+// Kontrak dengan build.js: zona yang dikirim ke peramban harus tetap membawa
+// aktif: true. Pernah tidak -- build menyaring zona mati lalu membuang
+// kolomnya, dan di peramban tidak ada satu pun provinsi yang bisa ditemukan
+// karena semuanya terbaca tidak aktif. Tes unit tidak menangkapnya: yang cacat
+// bukan aturannya melainkan bentuk data yang sampai ke sana.
+test('zona tanpa kolom aktif tidak dianggap hidup', function () {
+  const tanpaKolom = [{ nama: 'Jawa', tarif_per_kg: 20000, provinsi: ['Jawa Barat'] }];
+  assert.strictEqual(RENDER.zonaUntuk(tanpaKolom, 'Jawa Barat'), null);
+});
+
 test('provinsi yang tidak terdaftar tidak dipaksakan ke zona mana pun', function () {
   assert.strictEqual(RENDER.zonaUntuk(ZONA, 'Maluku Utara'), null);
   assert.strictEqual(RENDER.zonaUntuk(ZONA, ''), null);

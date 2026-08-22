@@ -71,17 +71,23 @@ async function ambil(tabel, kueri) {
 }
 
 async function ambilKatalog() {
-  const [produk, varian, foto, seksi, kategori, produkKategori] = await Promise.all([
+  const [produk, varian, foto, seksi, kategori, produkKategori, zona, setelan] = await Promise.all([
     ambil('web_produk', 'select=*&order=urutan,nama'),
     ambil('web_varian', 'select=*&order=produk_id,urutan,label_ukuran'),
     ambil('web_foto', 'select=*&order=produk_id,urutan'),
     ambil('web_seksi', 'select=*&order=halaman,blok,urutan'),
     ambil('web_kategori', 'select=*&order=urutan,nama'),
-    ambil('web_produk_kategori', 'select=*')
+    ambil('web_produk_kategori', 'select=*'),
+    ambil('web_ongkir_zona', 'select=*&order=urutan,nama'),
+    ambil('web_setelan', 'select=*')
   ]);
   // Kunci publishable hanya melihat baris aktif -- itu kebijakan RLS, bukan
   // penyaringan di sini. Yang disembunyikan pemilik tidak pernah sampai.
-  return { produk, varian, foto, seksi, kategori, produkKategori, basisFoto: BASIS_FOTO };
+  const peta = {};
+  (setelan || []).forEach(function (x) { peta[x.kunci] = x.nilai; });
+
+  return { produk, varian, foto, seksi, kategori, produkKategori,
+           zona, setelan: peta, basisFoto: BASIS_FOTO };
 }
 
 // ---------------------------------------------------------------------------
@@ -472,6 +478,14 @@ async function bangun() {
   // keranjang yang mengendap seminggu.
   //
   // Tidak masuk sitemap dan tidak perlu: ini data, bukan halaman.
+  tulis('/checkout/', halaman({
+    alamat: '/checkout/',
+    judul: 'Checkout — Gemeos Coffee',
+    deskripsi: 'Isi alamat pengiriman untuk pesanan Gemeos Coffee.',
+    isi: RENDER.checkout(WA_TOKO),
+    render: true
+  }));
+
   fs.writeFileSync(path.join(KELUAR, 'katalog.json'), JSON.stringify({
     produk: data.produk.map(function (p) {
       return { id: p.id, nama: p.nama, slug: p.slug, foto: fotoPertama(p) };
@@ -482,7 +496,18 @@ async function bangun() {
                // Berat kirim, bukan berat kopi: yang ini sudah termasuk kemasan
                // dan itulah yang dipakai menghitung ongkir di checkout.
                berat_kirim_g: Number(v.berat_kirim_g || 0) };
-    })
+    }),
+    // Hanya zona yang dilayani yang ikut. Zona mati tidak boleh sampai ke
+    // peramban: pembeli di sana tidak perlu melihat pilihan provinsi yang
+    // ujungnya menolak dia.
+    zona: (data.zona || []).filter(function (z) { return z.aktif; }).map(function (z) {
+      // aktif ikut dikirim meski daftarnya sudah disaring. zonaUntuk() memakai
+      // kolom itu sebagai penjaga, dan zona yang datang tanpa kolomnya terbaca
+      // mati -- artinya tidak ada satu pun provinsi yang bisa ditemukan.
+      return { nama: z.nama, provinsi: z.provinsi || [],
+               tarif_per_kg: Number(z.tarif_per_kg), aktif: true };
+    }),
+    gratisOngkirDari: (data.setelan || {}).gratis_ongkir_dari || null
   }), 'utf8');
 
   // Halaman tulisan: pengiriman, retur, syarat, privasi, kontak.

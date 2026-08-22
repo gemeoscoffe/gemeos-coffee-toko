@@ -721,6 +721,151 @@
     };
   }
 
+  // -------------------------------------------------------------------------
+  // Checkout
+  // -------------------------------------------------------------------------
+
+  // Nomor Indonesia punya empat bentuk yang sama-sama lazim diketik: 08xx,
+  // 8xx, 62xx, dan +62xx. Diseragamkan ke satu bentuk supaya yang tersimpan di
+  // pesanan cuma satu rupa -- dua rupa berarti pemilik tidak bisa mencari
+  // pembeli yang sama dua kali.
+  //
+  // null berarti bukan nomor ponsel Indonesia yang bisa dihubungi. Kurir
+  // menghubungi penerima lewat nomor ini dan yang dipakai selalu ponsel, jadi
+  // nomor rumah ditolak: paket nyasar tanpa nomor yang bisa dihubungi adalah
+  // paket yang hilang.
+  function normalTelepon(teks) {
+    const angka = String(teks == null ? '' : teks).replace(/[^0-9]/g, '');
+    if (!angka) return null;
+
+    let inti = angka;
+    if (inti.indexOf('62') === 0) inti = inti.slice(2);
+    else if (inti.indexOf('0') === 0) inti = inti.slice(1);
+
+    // Ponsel Indonesia selalu diawali 8, dan panjangnya 9-12 angka setelah
+    // kode negara.
+    if (inti.indexOf('8') !== 0) return null;
+    if (inti.length < 9 || inti.length > 12) return null;
+
+    return '62' + inti;
+  }
+
+  // Sengaja longgar: yang dicari bentuk yang masih masuk akal, bukan alamat
+  // yang dijamin ada. Satu-satunya cara membuktikan sebuah email hidup adalah
+  // mengirim ke sana, dan itu bukan tugas formulir.
+  function emailMasukAkal(teks) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(teks || '').trim());
+  }
+
+  function periksaAlamat(isian, daftarZona) {
+    const ambil = function (k) { return String((isian && isian[k]) || '').trim(); };
+    const galat = {};
+
+    const nama = ambil('nama');
+    if (!nama) galat.nama = 'Nama penerima wajib diisi.';
+
+    const email = ambil('email').toLowerCase();
+    if (!email) galat.email = 'Email wajib diisi -- ke sana konfirmasi dan nomor resi dikirim.';
+    else if (!emailMasukAkal(email)) galat.email = 'Email ini sepertinya keliru.';
+
+    const telepon = normalTelepon(ambil('telepon'));
+    if (!ambil('telepon')) galat.telepon = 'Nomor WhatsApp wajib diisi.';
+    else if (!telepon) galat.telepon = 'Isi nomor ponsel Indonesia, misalnya 0812xxxxxxx.';
+
+    // Sebaris seperti "Bandung" tidak cukup untuk diantar ke pintu.
+    const jalan = ambil('alamat');
+    if (!jalan) galat.alamat = 'Alamat lengkap wajib diisi.';
+    else if (jalan.length < 12) galat.alamat = 'Tulis lebih lengkap: nama jalan, nomor, RT/RW.';
+
+    if (!ambil('kota')) galat.kota = 'Kota atau kabupaten wajib diisi.';
+
+    const provinsi = ambil('provinsi');
+    if (!provinsi) galat.provinsi = 'Provinsi wajib dipilih.';
+    else if (!zonaUntuk(daftarZona, provinsi)) {
+      galat.provinsi = 'Maaf, kami belum mengirim ke provinsi ini.';
+    }
+
+    const pos = ambil('kode_pos');
+    if (!pos) galat.kode_pos = 'Kode pos wajib diisi.';
+    else if (!/^[0-9]{5}$/.test(pos)) galat.kode_pos = 'Kode pos Indonesia lima angka.';
+
+    return {
+      ok: Object.keys(galat).length === 0,
+      galat: galat,
+      bersih: {
+        nama: nama, email: email, telepon: telepon, alamat: jalan,
+        kota: ambil('kota'), provinsi: provinsi, kode_pos: pos,
+        catatan: ambil('catatan')
+      }
+    };
+  }
+
+  // Seluruh angka yang dilihat pembeli di halaman checkout, dari satu tempat.
+  // Angka-angka ini dihitung ulang di server sebelum pesanan dibuat; kalau
+  // aturannya tersebar, yang berbeda bukan cuma angkanya tapi kepercayaannya.
+  function ringkasPesanan(katalog, isi, alamat, daftarZona, gratisDari) {
+    const keranjang = ringkasKeranjang(katalog, isi);
+    const zona = zonaUntuk(daftarZona, alamat && alamat.provinsi);
+    const ongkir = hitungOngkir({
+      zona: zona,
+      beratGram: beratKeranjang(katalog, isi),
+      subtotal: keranjang.total,
+      gratisDari: gratisDari
+    });
+
+    const adaYangLebihStok = keranjang.baris.some(function (b) { return b.lebihStok; });
+
+    return {
+      baris: keranjang.baris,
+      subtotal: keranjang.total,
+      ongkir: ongkir,
+      // null, bukan subtotal. Selama ongkirnya belum diketahui, tidak ada
+      // angka jujur yang bisa disebut sebagai total yang harus dibayar.
+      total: ongkir ? keranjang.total + ongkir.ongkir : null,
+      bolehLanjut: keranjang.baris.length > 0 && !adaYangLebihStok && !!ongkir
+    };
+  }
+
+  // Pesan pesanan lengkap. Sampai pembayaran di website ada, pesan inilah
+  // pesanannya -- bukan pengantar menuju pesanan. Yang kurang di sini berubah
+  // jadi pertanyaan balik lewat chat, dan tiap pertanyaan balik adalah
+  // kesempatan pembeli berubah pikiran.
+  function pesanCheckout(ringkas, alamat) {
+    const barang = ringkas.baris.map(function (b) {
+      return '- ' + b.nama + ' ' + b.ukuran +
+        (b.giling ? ' (' + b.giling + ')' : '') +
+        ' x' + b.qty + ' = ' + rp(b.subtotal);
+    });
+
+    const o = ringkas.ongkir;
+    const barisOngkir = o
+      ? (o.gratis
+          ? 'Ongkir ' + o.zona + ' ' + o.kg + ' kg: gratis'
+          : 'Ongkir ' + o.zona + ' ' + o.kg + ' kg: ' + rp(o.ongkir))
+      : 'Ongkir: belum dihitung';
+
+    const bagian = [
+      'Halo Gemeos Coffee, saya mau pesan:',
+      '',
+      barang.join('\n'),
+      '',
+      'Subtotal: ' + rp(ringkas.subtotal),
+      barisOngkir,
+      'Total: ' + (ringkas.total === null ? 'menunggu ongkir' : rp(ringkas.total)),
+      '',
+      'Kirim ke:',
+      alamat.nama,
+      alamat.telepon,
+      alamat.email,
+      alamat.alamat,
+      alamat.kota + ', ' + alamat.provinsi + ' ' + alamat.kode_pos
+    ];
+
+    if (alamat.catatan) bagian.push('', 'Catatan: ' + alamat.catatan);
+
+    return bagian.join('\n');
+  }
+
   // Pesan WhatsApp untuk satu keranjang. Sementara pembayaran di website belum
   // ada, ini yang menutup penjualan -- jadi isinya harus cukup untuk pemilik
   // menyiapkan pesanan tanpa bertanya balik: ukuran, gilingan, jumlah, harga.
@@ -733,6 +878,20 @@
     return 'Halo Gemeos Coffee, saya mau pesan:\n\n' + baris.join('\n') +
       '\n\nTotal: ' + rp(ringkas.total) + ' (belum termasuk ongkir)' +
       (alamatToko ? '\n' + alamatToko : '');
+  }
+
+  // Sama seperti keranjang: dibangun kosong, diisi di peramban. Isinya keranjang
+  // satu orang ditambah alamat yang sedang dia ketik, dan tidak satu pun dari
+  // itu boleh ikut ke berkas HTML yang dikirim ke semua orang.
+  function checkout(waDasar) {
+    return '<div class="wrap"><section class="checkout">' +
+      '<span class="plat">Checkout</span>' +
+      '<h1>Alamat pengiriman</h1>' +
+      '<div id="checkout-isi" data-wa="' + esc(waDasar || '') + '">' +
+        '<p class="plat">Memuat pesanan...</p></div>' +
+      '<noscript><p class="plat">Checkout membutuhkan JavaScript. ' +
+        'Kamu tetap bisa memesan lewat WhatsApp di halaman Kontak.</p></noscript>' +
+    '</section></div>';
   }
 
   // Halaman keranjang dibangun kosong dan diisi di peramban: isinya milik satu
@@ -933,7 +1092,9 @@
     kataCari: kataCari, produkSorot: produkSorot,
     ringkasKeranjang: ringkasKeranjang, pesanWhatsapp: pesanWhatsapp,
     zonaUntuk: zonaUntuk, beratKeranjang: beratKeranjang, hitungOngkir: hitungOngkir,
-    keranjang: keranjang,
+    normalTelepon: normalTelepon, periksaAlamat: periksaAlamat,
+    ringkasPesanan: ringkasPesanan, pesanCheckout: pesanCheckout,
+    keranjang: keranjang, checkout: checkout,
     kategoriProduk: kategoriProduk,
     seksiDari: seksiDari, seksiSatu: seksiSatu, seksiTerisi: seksiTerisi,
     beranda: beranda, shop: shop, tentang: tentang, produk: produk,

@@ -396,9 +396,6 @@
       }).join('');
 
       const waDasar = kotakKeranjang.dataset.wa;
-      const wa = waDasar
-        ? waDasar + '?text=' + encodeURIComponent(RENDER.pesanWhatsapp(r))
-        : '/kontak/';
 
       kotakKeranjang.innerHTML =
         (r.hilang.length
@@ -409,10 +406,15 @@
         '<div class="k-kaki">' +
           '<p class="k-total"><span>Total</span><b>' + RENDER.rp(r.total) + '</b></p>' +
           '<p class="plat">Belum termasuk ongkos kirim. Ongkir dihitung setelah alamatmu diketahui.</p>' +
-          '<a class="tombol amber" href="' + wa + '"' +
-            (waDasar ? ' target="_blank" rel="noopener"' : '') + '>' +
-            'Lanjut pesan lewat WhatsApp</a>' +
+          '<a class="tombol amber" href="/checkout/">Isi alamat pengiriman</a>' +
           '<a class="tombol garis" href="/shop/">Tambah kopi lain</a>' +
+          // Jalan pintas bagi yang lebih suka chat daripada mengisi formulir.
+          // Isinya cuma barangnya, tanpa alamat dan tanpa ongkir.
+          (waDasar
+            ? '<p class="k-lewat"><a href="' + waDasar + '?text=' +
+                encodeURIComponent(RENDER.pesanWhatsapp(r)) +
+                '" target="_blank" rel="noopener">atau kirim daftar ini lewat WhatsApp</a></p>'
+            : '') +
         '</div>';
 
       wireKeranjang();
@@ -459,5 +461,207 @@
     }
 
     gambarKeranjang();
+  }
+  // ---------------------------------------------------------------------------
+  // Checkout
+  // ---------------------------------------------------------------------------
+  //
+  // Semua angka datang dari RENDER.ringkasPesanan, satu-satunya tempat aturan
+  // ongkir dan total ditulis. Yang dikerjakan di sini cuma mengumpulkan isian,
+  // memanggilnya ulang tiap ada yang berubah, dan menggambar hasilnya.
+
+  const kotakCheckout = document.getElementById('checkout-isi');
+  if (kotakCheckout) {
+    const KUNCI_ALAMAT = 'alamat-kirim';
+    const KOLOM = ['nama', 'email', 'telepon', 'alamat', 'kota', 'provinsi', 'kode_pos', 'catatan'];
+    let KATALOG_CO = null;
+    let SENTUH = {};
+
+    function bacaAlamat() {
+      try { return JSON.parse(localStorage.getItem(KUNCI_ALAMAT) || '{}') || {}; }
+      catch (e) { return {}; }
+    }
+
+    // Alamat disimpan supaya pembeli yang kembali tidak mengetik ulang. Tetap
+    // di perambannya sendiri: tidak ada akun, dan sebelum dia menekan kirim
+    // tidak ada satu pun datanya yang berpindah ke mana-mana.
+    function tulisAlamat(a) {
+      try { localStorage.setItem(KUNCI_ALAMAT, JSON.stringify(a)); } catch (e) {}
+    }
+
+    function isianSekarang() {
+      const a = {};
+      KOLOM.forEach(function (k) {
+        const el = document.getElementById('co-' + k);
+        a[k] = el ? el.value : (bacaAlamat()[k] || '');
+      });
+      return a;
+    }
+
+    function kotakIsian(k, label, nilai, galat, opsi) {
+      const o = opsi || {};
+      const isi = o.panjang
+        ? '<textarea id="co-' + k + '" rows="3">' + RENDER.esc(nilai || '') + '</textarea>'
+        : '<input id="co-' + k + '" type="' + (o.tipe || 'text') + '" value="' +
+            RENDER.esc(nilai || '') + '"' + (o.mode ? ' inputmode="' + o.mode + '"' : '') + '>';
+      return '<div class="co-kolom' + (galat ? ' salah' : '') + '" style="' + (o.lebar || '') + '">' +
+        '<label for="co-' + k + '">' + label + '</label>' + isi +
+        (galat ? '<p class="co-galat">' + RENDER.esc(galat) + '</p>' : '') +
+      '</div>';
+    }
+
+    function pilihProvinsi(nilai, galat) {
+      const zona = (KATALOG_CO.zona || []);
+      const semua = [];
+      zona.forEach(function (z) {
+        (z.provinsi || []).forEach(function (p) { semua.push(p); });
+      });
+      semua.sort(function (a, b) { return a.localeCompare(b, 'id'); });
+
+      // Tanpa satu pun zona hidup, tidak ada provinsi yang bisa dipilih. Lebih
+      // baik mengatakannya daripada menyodorkan daftar kosong.
+      if (semua.length === 0) {
+        return '<div class="co-kolom"><label>Provinsi</label>' +
+          '<p class="co-galat">Pengiriman belum dibuka. Hubungi kami lewat WhatsApp untuk memesan.</p></div>';
+      }
+
+      return '<div class="co-kolom' + (galat ? ' salah' : '') + '">' +
+        '<label for="co-provinsi">Provinsi</label>' +
+        '<select id="co-provinsi"><option value="">Pilih provinsi</option>' +
+          semua.map(function (p) {
+            return '<option value="' + RENDER.esc(p) + '"' +
+              (p === nilai ? ' selected' : '') + '>' + RENDER.esc(p) + '</option>';
+          }).join('') +
+        '</select>' +
+        (galat ? '<p class="co-galat">' + RENDER.esc(galat) + '</p>' : '') +
+      '</div>';
+    }
+
+    function barisRingkas(r) {
+      const o = r.ongkir;
+      return '<ul class="co-ringkas">' +
+        r.baris.map(function (b) {
+          return '<li><span>' + RENDER.esc(b.nama) + ' ' + RENDER.esc(b.ukuran) +
+            (b.giling ? ' &middot; ' + RENDER.esc(b.giling) : '') +
+            ' &times;' + b.qty + '</span><b>' + RENDER.rp(b.subtotal) + '</b></li>';
+        }).join('') +
+        '<li class="co-antara"><span>Subtotal</span><b>' + RENDER.rp(r.subtotal) + '</b></li>' +
+        '<li class="co-antara"><span>Ongkir' + (o ? ' ' + RENDER.esc(o.zona) + ' &middot; ' + o.kg + ' kg' : '') +
+          '</span><b>' +
+          (o ? (o.gratis ? 'Gratis' : RENDER.rp(o.ongkir)) : 'pilih provinsi dulu') +
+          '</b></li>' +
+        '<li class="co-total"><span>Total</span><b>' +
+          (r.total === null ? '&mdash;' : RENDER.rp(r.total)) + '</b></li>' +
+      '</ul>';
+    }
+
+    function gambarCheckout(periksa) {
+      const isi = bacaKeranjang();
+
+      if (isi.length === 0) {
+        kotakCheckout.innerHTML =
+          '<p class="plat">Keranjangmu kosong, jadi belum ada yang bisa dikirim.</p>' +
+          '<p><a class="tombol amber" href="/shop/">Lihat katalog</a></p>';
+        return;
+      }
+
+      const a = isianSekarang();
+      const r = RENDER.ringkasPesanan(KATALOG_CO, isi, a, KATALOG_CO.zona, KATALOG_CO.gratisOngkirDari);
+      const g = (periksa && periksa.galat) || {};
+
+      // Kolom yang belum pernah disentuh tidak dimerahkan. Formulir yang sudah
+      // merah sebelum diketik terasa seperti menuduh.
+      const tampil = function (k) { return SENTUH[k] || (periksa && periksa.semua) ? g[k] : null; };
+
+      kotakCheckout.innerHTML =
+        '<div class="co-atur">' +
+          '<form class="co-form" id="co-form" novalidate>' +
+            '<div class="co-baris">' +
+              kotakIsian('nama', 'Nama penerima', a.nama, tampil('nama')) +
+              kotakIsian('telepon', 'Nomor WhatsApp', a.telepon, tampil('telepon'), { mode: 'tel' }) +
+            '</div>' +
+            kotakIsian('email', 'Email', a.email, tampil('email'), { tipe: 'email' }) +
+            kotakIsian('alamat', 'Alamat lengkap', a.alamat, tampil('alamat'), { panjang: true }) +
+            '<div class="co-baris">' +
+              kotakIsian('kota', 'Kota atau kabupaten', a.kota, tampil('kota')) +
+              pilihProvinsi(a.provinsi, tampil('provinsi')) +
+              kotakIsian('kode_pos', 'Kode pos', a.kode_pos, tampil('kode_pos'), { mode: 'numeric' }) +
+            '</div>' +
+            kotakIsian('catatan', 'Catatan untuk kami (opsional)', a.catatan, null, { panjang: true }) +
+          '</form>' +
+          '<aside class="co-samping">' +
+            '<h2>Pesananmu</h2>' +
+            barisRingkas(r) +
+            (r.baris.some(function (b) { return b.lebihStok; })
+              ? '<p class="co-galat">Ada barang yang jumlahnya melebihi stok. Kurangi dulu di ' +
+                '<a href="/keranjang/">keranjang</a>.</p>'
+              : '') +
+            '<button class="tombol amber" type="button" id="co-kirim">Kirim pesanan lewat WhatsApp</button>' +
+            '<p class="co-catatan">Pembayaran langsung di website sedang disiapkan. Untuk sekarang ' +
+              'pesananmu kami terima lewat WhatsApp, lengkap dengan alamat dan ongkirnya.</p>' +
+            '<p class="co-catatan"><a href="/keranjang/">Ubah keranjang</a></p>' +
+          '</aside>' +
+        '</div>';
+
+      wireCheckout(r);
+    }
+
+    function wireCheckout(r) {
+      KOLOM.forEach(function (k) {
+        const el = document.getElementById('co-' + k);
+        if (!el) return;
+        el.addEventListener('input', function () {
+          const a = isianSekarang();
+          tulisAlamat(a);
+        });
+        // Digambar ulang saat kotaknya ditinggalkan, bukan tiap huruf: menggambar
+        // ulang di tengah pengetikan akan merebut kursor dari tangan orangnya.
+        el.addEventListener('change', function () {
+          SENTUH[k] = true;
+          tulisAlamat(isianSekarang());
+          gambarCheckout(RENDER.periksaAlamat(isianSekarang(), KATALOG_CO.zona));
+        });
+      });
+
+      const kirim = document.getElementById('co-kirim');
+      if (!kirim) return;
+      kirim.addEventListener('click', function () {
+        const a = isianSekarang();
+        const periksa = RENDER.periksaAlamat(a, KATALOG_CO.zona);
+        tulisAlamat(a);
+
+        if (!periksa.ok) {
+          periksa.semua = true;
+          gambarCheckout(periksa);
+          const salah = document.querySelector('.co-kolom.salah input, .co-kolom.salah select, .co-kolom.salah textarea');
+          if (salah) salah.focus();
+          return;
+        }
+
+        const ringkas = RENDER.ringkasPesanan(
+          KATALOG_CO, bacaKeranjang(), periksa.bersih, KATALOG_CO.zona, KATALOG_CO.gratisOngkirDari);
+        if (!ringkas.bolehLanjut) { gambarCheckout(periksa); return; }
+
+        const dasar = kotakCheckout.dataset.wa;
+        const pesan = RENDER.pesanCheckout(ringkas, periksa.bersih);
+        window.open(dasar
+          ? dasar + '?text=' + encodeURIComponent(pesan)
+          : '/kontak/', '_blank', 'noopener');
+      });
+    }
+
+    (async function () {
+      try {
+        const res = await fetch('/katalog.json', { cache: 'no-cache' });
+        if (!res.ok) throw new Error(String(res.status));
+        KATALOG_CO = await res.json();
+      } catch (e) {
+        kotakCheckout.innerHTML =
+          '<p class="plat">Katalog gagal dimuat, jadi harga dan ongkir belum bisa dihitung. ' +
+          'Keranjangmu masih tersimpan &mdash; coba muat ulang halaman ini.</p>';
+        return;
+      }
+      gambarCheckout(null);
+    })();
   }
 })();
