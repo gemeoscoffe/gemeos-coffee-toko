@@ -541,3 +541,57 @@ test('halaman keranjang dibangun kosong dan membawa alamat WhatsApp', function (
   assert.match(html, /data-wa="https:\/\/wa\.me\/628815865698"/);
   assert.match(html, /<noscript>/);
 });
+
+// -- Spanduk halaman depan ---------------------------------------------------
+
+test('spanduk tanpa foto tidak digambar sama sekali', function () {
+  const html = RENDER.beranda(data({
+    seksi: [seksi({ id: 9, blok: 'spanduk', judul: 'Juara 1 Tokopedia' })]
+  }));
+  assert.doesNotMatch(html, /class="spanduk"/);
+});
+
+test('spanduk berfoto digambar dengan keterangannya sebagai alt', function () {
+  const html = RENDER.beranda(data({
+    seksi: [seksi({ id: 9, blok: 'spanduk', judul: 'Juara 1 Tokopedia Paling Nyam 2024',
+                    foto_path: 'seksi/9/spanduk.webp', foto_lebar: [400, 800, 1600] })]
+  }));
+  assert.match(html, /class="spanduk"/);
+  assert.match(html, /alt="Juara 1 Tokopedia Paling Nyam 2024"/);
+  assert.match(html, /seksi\/9\/spanduk/);
+});
+
+// Tulisan di dalam gambar tidak terbaca mesin mana pun. Kalau alt ikut kosong,
+// klaim yang paling ingin dibaca orang justru satu-satunya yang tidak ada.
+test('spanduk tanpa keterangan tetap tampil, altnya kosong bukan sampah', function () {
+  const html = RENDER.beranda(data({
+    seksi: [seksi({ id: 9, blok: 'spanduk', judul: null,
+                    foto_path: 'seksi/9/spanduk.webp', foto_lebar: [800] })]
+  }));
+  assert.match(html, /class="spanduk"/);
+  assert.match(html, /alt=""/);
+});
+
+test('spanduk bertautan dibungkus tautan, yang tidak tetap gambar biasa', function () {
+  const berTautan = RENDER.beranda(data({
+    seksi: [seksi({ id: 9, blok: 'spanduk', judul: 'Promo', tombol_url: '/shop/',
+                    foto_path: 'seksi/9/a.webp', foto_lebar: [800] })]
+  }));
+  assert.match(berTautan, /<a class="spanduk-bingkai" href="\/shop\/">/);
+
+  const polos = RENDER.beranda(data({
+    seksi: [seksi({ id: 9, blok: 'spanduk', judul: 'Promo',
+                    foto_path: 'seksi/9/a.webp', foto_lebar: [800] })]
+  }));
+  assert.match(polos, /<div class="spanduk-bingkai">/);
+});
+
+test('spanduk muncul di antara hero dan produk, bukan di bawah katalog', function () {
+  const html = RENDER.beranda(data({
+    seksi: [
+      seksi({ id: 1, blok: 'hero', judul: 'GEMEOS' }),
+      seksi({ id: 9, blok: 'spanduk', judul: 'Promo', foto_path: 'seksi/9/a.webp', foto_lebar: [800] })
+    ]
+  }));
+  assert.ok(html.indexOf('class="spanduk"') < html.indexOf('id="sorot-rel"'));
+});

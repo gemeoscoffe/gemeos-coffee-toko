@@ -1199,3 +1199,17 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
   .k-jumlah { grid-column: 2; }
   .k-harga { grid-column: 3; }
 }
+
+/* ---------------------------------------------------------------------------
+   Spanduk gambar di halaman depan
+   --------------------------------------------------------------------------- */
+
+.spanduk { padding: 40px 0 0; display: grid; gap: 18px; }
+
+/* Tinggi gambar dibiarkan mengikuti gambarnya sendiri, tidak dipatok. Spanduk
+   dibuat di Canva dengan perbandingan yang bermacam-macam, dan memotongnya ke
+   satu perbandingan tetap akan memangkas justru tulisan di tepinya. */
+.spanduk-bingkai { display: block; border-radius: 4px; overflow: hidden; }
+.spanduk-bingkai img { display: block; width: 100%; height: auto; }
+
+a.spanduk-bingkai:hover img { opacity: 0.94; }

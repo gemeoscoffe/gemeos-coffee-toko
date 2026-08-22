@@ -55,6 +55,21 @@ const SEKSI_BENTUK = {
     foto: 'Foto pendamping'
   },
 
+  'home/spanduk': {
+    nama: 'Spanduk gambar',
+    catatan: 'Gambar lebar di bawah hero &mdash; penghargaan, promo, atau pengumuman. Satu biasanya cukup; ' +
+      'dua spanduk bertumpuk mendorong katalog turun jauh dari layar pertama. ' +
+      '<b>Keterangan gambar wajib diisi.</b> Semua tulisan di dalam spanduk tidak terbaca Google, tidak ' +
+      'terbaca pembaca layar, dan hilang sama sekali kalau gambarnya gagal termuat &mdash; jadi tulis di ' +
+      'situ apa yang tertulis di gambarnya. Ukuran yang bagus sekitar 1600 piksel lebar.',
+    banyak: true,
+    kolom: [
+      { k: 'judul', label: 'Keterangan gambar', ph: 'Juara 1 Tokopedia Paling Nyam 2024' },
+      { k: 'tombol_url', label: 'Dibuka ke mana kalau diklik (opsional)', ph: '/shop/', kecil: true }
+    ],
+    foto: 'Gambar spanduk'
+  },
+
   'home/alasan': {
     nama: 'Kenapa beli langsung di sini',
     catatan: 'Kartu-kartu alasan. Foto boleh dikosongkan &mdash; kalau satu pun belum berfoto, semuanya tampil sebagai pita teks, bukan kartu bergambar setengah kosong.',
@@ -123,7 +138,7 @@ const SEKSI_BENTUK = {
 // bukan abjad: yang sedang disunting jadi mudah dicocokkan dengan yang dilihat
 // di tab sebelah.
 const SEKSI_LAYAR = {
-  'toko-seksi-depan':   ['home/hero', 'home/cerita', 'home/alasan', 'home/testimoni', 'home/lokasi'],
+  'toko-seksi-depan':   ['home/hero', 'home/spanduk', 'home/cerita', 'home/alasan', 'home/testimoni', 'home/lokasi'],
   'toko-seksi-tentang': ['tentang/hero', 'tentang/isi']
 };
 

@@ -473,6 +473,29 @@
     '</section></div>';
   }
 
+  // Spanduk gambar lebar di halaman depan: penghargaan, promo, pengumuman.
+  //
+  // Yang tanpa foto tidak digambar sama sekali. Spanduk adalah gambarnya --
+  // tanpa itu tidak ada yang tersisa untuk ditampilkan, dan judulnya di sini
+  // bukan tulisan yang tampak melainkan keterangan gambar.
+  //
+  // Keterangan itu wajib diisi dan bukan formalitas: seluruh isi spanduk
+  // semacam ini berupa tulisan di dalam gambar, yang tidak bisa dibaca Google,
+  // tidak bisa dibaca pembaca layar, dan tidak muncul sama sekali kalau
+  // gambarnya gagal termuat. Tanpa keterangan, klaim yang paling ingin
+  // diketahui orang justru satu-satunya yang tidak terbaca mesin.
+  function spandukBeranda(data) {
+    const baris = seksiDari(data, 'home', 'spanduk').filter(function (s) { return s.foto_path; });
+    if (baris.length === 0) return '';
+
+    return '<div class="wrap"><section class="spanduk">' + baris.map(function (s) {
+      const gambar = gambarSeksi(data, s, 1600, '(max-width: 1240px) 92vw, 1200px', s.judul);
+      return s.tombol_url
+        ? '<a class="spanduk-bingkai" href="' + esc(s.tombol_url) + '">' + gambar + '</a>'
+        : '<div class="spanduk-bingkai">' + gambar + '</div>';
+    }).join('') + '</section></div>';
+  }
+
   // Produk yang ditandai `sorot` di /admin. Selama belum ada satu pun yang
   // ditandai, delapan produk pertama yang tampil -- perilaku halaman depan
   // sebelum kolom itu ada. Bagian yang tiba-tiba kosong setelah pembaruan
@@ -597,6 +620,7 @@
     if (data.produk.length === 0 && !seksiTerisi(seksiSatu(data, 'home', 'hero'))) return kosongTotal();
 
     return heroBeranda(data) +
+      spandukBeranda(data) +
       (data.produk.length ? sorotBeranda(data) : '') +
       ceritaBeranda(data) +
       alasanBeranda(data) +
@@ -772,6 +796,7 @@
     kategoriProduk: kategoriProduk,
     seksiDari: seksiDari, seksiSatu: seksiSatu, seksiTerisi: seksiTerisi,
     beranda: beranda, shop: shop, tentang: tentang, produk: produk,
+    spandukBeranda: spandukBeranda,
     MARKETPLACE: MARKETPLACE
   };
 
