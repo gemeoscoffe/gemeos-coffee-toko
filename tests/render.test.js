@@ -105,6 +105,20 @@ test('katalog tanpa produk mengarahkan ke marketplace, bukan halaman kosong', fu
   assert.match(html, /tk\.tokopedia\.com/);
 });
 
+// Ukuran hanya disebut di halaman produk, tempat orang benar-benar memilihnya.
+// Di kartu, delapan potong berat membuat tinggi kartu berbeda-beda dan menutupi
+// yang justru membedakan produknya: asalnya.
+test('kartu beranda dan shop tidak menampilkan daftar ukuran', function () {
+  const d = data();
+  const depan = RENDER.beranda(d);
+  const shop = RENDER.shop(d, null);
+  assert.doesNotMatch(depan, /class="ukuran"/);
+  assert.doesNotMatch(shop, /class="ukuran"/);
+  assert.match(depan, /Gunung Puntang, Jawa Barat/);
+  assert.match(shop, /Gunung Puntang, Jawa Barat/);
+  assert.match(RENDER.produk(d, d.produk[0]), /200 g/);
+});
+
 // -- Halaman depan dan Tentang Kami ----------------------------------------
 //
 // Bagian yang belum diisi pemilik tidak boleh digambar. Judul tanpa isi

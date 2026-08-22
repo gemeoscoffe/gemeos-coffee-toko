@@ -123,6 +123,9 @@
   // Potongan yang dipakai berulang
   // -------------------------------------------------------------------------
 
+  // Kartu tidak menyebut ukuran. Daftar berat cuma berguna waktu orang sudah
+  // memilih kopinya, dan itu terjadi di halaman produk; di grid ia memanjang
+  // sampai delapan potong sehingga kartunya jadi tidak sama tinggi.
   function kartu(data, p) {
     const varian = varianDari(data, p.id);
     const diskon = varian.some(function (v) { return v.harga_coret; });
@@ -139,11 +142,6 @@
         '<div class="isi">' +
           '<h3>' + esc(p.nama) + '</h3>' +
           (asal ? '<p class="asal">' + esc(asal) + '</p>' : '') +
-          (varian.length
-            ? '<div class="ukuran">' + varian.map(function (v) {
-                return '<b>' + esc(v.label_ukuran) + '</b>';
-              }).join('') + '</div>'
-            : '') +
           '<div class="harga"><b>' + rp(hargaTerendah(data, p)) + '</b><span class="plat">mulai dari</span></div>' +
           '<span class="lanjut">Lihat produk &rarr;</span>' +
         '</div>' +

@@ -463,18 +463,6 @@ section { padding: 72px 0; }
 .isi h3 { font-size: 19px; }
 .isi .asal { margin: 0; font-size: 13px; color: var(--kabut); }
 
-.ukuran { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
-
-.ukuran b {
-  font-family: var(--data);
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.1em;
-  padding: 3px 8px;
-  border: 1px solid var(--garis);
-  color: var(--kabut);
-}
-
 .harga {
   display: flex;
   align-items: baseline;
