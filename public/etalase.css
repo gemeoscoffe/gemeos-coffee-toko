@@ -1206,6 +1206,13 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
 
 .spanduk { padding: 40px 0 0; display: grid; gap: 18px; }
 
+/* Spanduk lebar penuh sengaja tidak dibungkus .wrap sama sekali, bukan
+   dikeluarkan darinya dengan margin negatif atau 100vw. 100vw menghitung batang
+   gulir sebagai lebar halaman, dan di Windows itu menambah sekitar 15 piksel
+   yang langsung berubah jadi gulir mendatar di seluruh situs. */
+.spanduk.penuh { padding: 40px 0 0; }
+.spanduk.penuh .spanduk-bingkai { border-radius: 0; }
+
 /* Tinggi gambar dibiarkan mengikuti gambarnya sendiri, tidak dipatok. Spanduk
    dibuat di Canva dengan perbandingan yang bermacam-macam, dan memotongnya ke
    satu perbandingan tetap akan memangkas justru tulisan di tepinya. */
@@ -1213,3 +1220,47 @@ footer { background: var(--sangrai); color: var(--susu); margin-top: 40px; }
 .spanduk-bingkai img { display: block; width: 100%; height: auto; }
 
 a.spanduk-bingkai:hover img { opacity: 0.94; }
+
+/* ---------------------------------------------------------------------------
+   Bagian Eksklusif dan spanduk bergulir
+   --------------------------------------------------------------------------- */
+
+.eksklusif {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 48px;
+  padding: 64px 0;
+  border-top: 1px solid var(--garis);
+}
+
+.eksklusif-kepala h2 { font-size: clamp(30px, 4.4vw, 52px); line-height: 1.06; margin: 10px 0 0; }
+.eksklusif-kepala p { color: var(--kabut); margin: 16px 0 0; max-width: 34ch; }
+
+.eksklusif-daftar article {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 22px 0;
+  border-top: 1px solid var(--garis);
+}
+
+.eksklusif-daftar article:first-child { border-top: 0; padding-top: 0; }
+.eksklusif-daftar h3 { margin: 0; font-size: 19px; }
+.eksklusif-daftar p { margin: 6px 0 0; color: var(--kabut); font-size: 15px; }
+.eksklusif-daftar .tombol { margin-left: auto; flex: none; }
+
+@media (max-width: 860px) {
+  .eksklusif { grid-template-columns: 1fr; gap: 28px; padding: 44px 0; }
+  .eksklusif-daftar article { flex-wrap: wrap; gap: 14px; }
+  .eksklusif-daftar .tombol { margin-left: 0; }
+}
+
+.spanduk-geser { padding: 8px 0 56px; }
+
+/* Satu spanduk memenuhi lebar barisan; yang berikutnya menunggu di sebelah
+   kanan. Kalau spanduknya cuma satu, barisannya tidak melebihi layar dan
+   panahnya tidak pernah digambar -- yang memang benar. */
+.spanduk-rel { grid-auto-columns: 100%; }
+.spanduk-rel > * { scroll-snap-align: start; }
+.spanduk-geser .geser-panah { top: 50%; transform: translateY(-50%); }
+.spanduk-geser .geser-panah:hover { transform: translateY(-50%); }

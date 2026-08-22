@@ -65,14 +65,45 @@ const SEKSI_BENTUK = {
     banyak: true,
     kolom: [
       { k: 'judul', label: 'Keterangan gambar', ph: 'Juara 1 Tokopedia Paling Nyam 2024' },
+      { k: 'subjudul', label: 'Ketik "penuh" untuk melebar sampai tepi layar', ph: '', kecil: true },
       { k: 'tombol_url', label: 'Dibuka ke mana kalau diklik (opsional)', ph: '/shop/', kecil: true }
     ],
     foto: 'Gambar spanduk'
   },
 
+  'home/spanduk-geser': {
+    nama: 'Spanduk bergulir',
+    catatan: 'Beberapa spanduk dalam satu barisan yang bisa digeser, dengan panah kiri-kanan. Letaknya di ' +
+      'bawah bagian Eksklusif. Panahnya hanya muncul kalau spanduknya lebih dari yang muat di layar &mdash; ' +
+      'satu spanduk saja tidak akan menampilkan panah, dan memang tidak perlu. ' +
+      '<b>Keterangan gambar wajib diisi</b>, alasannya sama dengan spanduk di atas.',
+    banyak: true,
+    kolom: [
+      { k: 'judul', label: 'Keterangan gambar', ph: 'Promo gratis ongkir Agustus' },
+      { k: 'tombol_url', label: 'Dibuka ke mana kalau diklik (opsional)', ph: '/shop/', kecil: true }
+    ],
+    foto: 'Gambar spanduk'
+  },
+
+  'home/eksklusif': {
+    nama: 'Judul bagian Eksklusif',
+    catatan: 'Judul besar di sebelah kiri daftar alasan, tepat di bawah Produk terlaris. Isinya di sini ' +
+      'hanya judulnya; daftar alasannya diatur di <b>Kenapa beli langsung di sini</b> di bawah. ' +
+      'Selama judul ini kosong, daftar alasannya tetap tampil dengan bentuk lamanya.',
+    banyak: false,
+    kolom: [
+      { k: 'subjudul', label: 'Label kecil', ph: 'Hanya di sini', kecil: true },
+      { k: 'judul', label: 'Judul besar', ph: 'Eksklusif di toko kami' },
+      { k: 'teks', label: 'Satu-dua kalimat (opsional)', panjang: true, ph: '' }
+    ]
+  },
+
   'home/alasan': {
     nama: 'Kenapa beli langsung di sini',
-    catatan: 'Kartu-kartu alasan. Foto boleh dikosongkan &mdash; kalau satu pun belum berfoto, semuanya tampil sebagai pita teks, bukan kartu bergambar setengah kosong.',
+    catatan: 'Daftar alasan di bawah <b>Produk terlaris</b>. Kalau <b>Judul bagian Eksklusif</b> di atas ' +
+      'sudah diisi, daftar ini tampil di sebelah kanannya sebagai baris bertumpuk. Kalau belum, daftar ini ' +
+      'tampil sendirian dengan bentuk lamanya: pita teks kalau tidak ada yang berfoto, kartu bergambar kalau ' +
+      'ada. Foto tidak dipakai di bentuk bersebelahan.',
     banyak: true,
     kolom: [
       { k: 'judul', label: 'Judul kartu', ph: 'Harga tanpa potongan marketplace' },
@@ -138,7 +169,8 @@ const SEKSI_BENTUK = {
 // bukan abjad: yang sedang disunting jadi mudah dicocokkan dengan yang dilihat
 // di tab sebelah.
 const SEKSI_LAYAR = {
-  'toko-seksi-depan':   ['home/hero', 'home/spanduk', 'home/cerita', 'home/alasan', 'home/testimoni', 'home/lokasi'],
+  'toko-seksi-depan':   ['home/hero', 'home/spanduk', 'home/eksklusif', 'home/alasan',
+                         'home/spanduk-geser', 'home/cerita', 'home/testimoni', 'home/lokasi'],
   'toko-seksi-tentang': ['tentang/hero', 'tentang/isi']
 };
 

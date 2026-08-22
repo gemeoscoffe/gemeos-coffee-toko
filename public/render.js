@@ -393,6 +393,38 @@
       '</div>';
   }
 
+  // Judul besar di kiri, daftar alasan di kanan. Judulnya blok tersendiri
+  // (`home/eksklusif`) supaya bisa disunting, sementara daftarnya tetap
+  // `home/alasan` yang sudah terisi -- menyalinnya ke blok baru berarti dua
+  // tempat menyimpan tiga kalimat yang sama.
+  //
+  // Judul tanpa alasan tidak digambar, dan sebaliknya juga tidak: yang pertama
+  // cuma tulisan menggantung, yang kedua daftar tanpa keterangan kenapa.
+  function eksklusifBeranda(data) {
+    const kepala = seksiSatu(data, 'home', 'eksklusif');
+    const rows = seksiDari(data, 'home', 'alasan').filter(seksiTerisi);
+    if (!seksiTerisi(kepala) || !rows.length) return alasanBeranda(data);
+
+    return '<div class="wrap"><section class="eksklusif">' +
+      '<div class="eksklusif-kepala">' +
+        (kepala.subjudul ? '<span class="plat">' + esc(kepala.subjudul) + '</span>' : '') +
+        '<h2>' + esc(kepala.judul || '') + '</h2>' +
+        (kepala.teks ? '<p>' + esc(kepala.teks) + '</p>' : '') +
+      '</div>' +
+      '<div class="eksklusif-daftar">' +
+        rows.map(function (s) {
+          return '<article>' +
+            '<div>' +
+              '<h3>' + esc(s.judul || '') + '</h3>' +
+              (s.teks ? '<p>' + esc(s.teks) + '</p>' : '') +
+            '</div>' +
+            tombolSeksi(s, 'amber') +
+          '</article>';
+        }).join('') +
+      '</div>' +
+    '</section></div>';
+  }
+
   function alasanBeranda(data) {
     const rows = seksiDari(data, 'home', 'alasan').filter(seksiTerisi);
     if (!rows.length) return '';
@@ -488,12 +520,53 @@
     const baris = seksiDari(data, 'home', 'spanduk').filter(function (s) { return s.foto_path; });
     if (baris.length === 0) return '';
 
-    return '<div class="wrap"><section class="spanduk">' + baris.map(function (s) {
+    // "penuh" di kolom subjudul membuat spanduk melebar sampai tepi layar.
+    // Bukan bawaannya: gambar yang tulisannya rapat ke tepi -- dan spanduk
+    // promosi hampir selalu begitu -- terlihat terlempar ke sudut layar lebar,
+    // sementara sisa halaman ini berhenti di 1200 piksel. Yang mau memakainya
+    // sebaiknya mengekspor ulang gambarnya dengan tulisan di tengah.
+    return baris.map(function (s) {
+      const penuh = String(s.subjudul || '').toLowerCase().indexOf('penuh') !== -1;
+      const gambar = gambarSeksi(data, s, 1600,
+        penuh ? '100vw' : '(max-width: 1240px) 92vw, 1200px', s.judul);
+      const isi = s.tombol_url
+        ? '<a class="spanduk-bingkai" href="' + esc(s.tombol_url) + '">' + gambar + '</a>'
+        : '<div class="spanduk-bingkai">' + gambar + '</div>';
+      return penuh
+        ? '<section class="spanduk penuh">' + isi + '</section>'
+        : '<div class="wrap"><section class="spanduk">' + isi + '</section></div>';
+    }).join('');
+  }
+
+  // Spanduk bergulir: beberapa gambar dalam satu barisan yang bisa digeser,
+  // dengan panah kiri-kanan. Bagiannya terpisah dari spanduk tunggal di atas
+  // karena keduanya menjawab hal berbeda -- yang satu satu pengumuman besar,
+  // yang ini beberapa promo yang sama pentingnya.
+  function spandukGeser(data) {
+    const baris = seksiDari(data, 'home', 'spanduk-geser').filter(function (s) { return s.foto_path; });
+    if (baris.length === 0) return '';
+
+    const isi = baris.map(function (s) {
       const gambar = gambarSeksi(data, s, 1600, '(max-width: 1240px) 92vw, 1200px', s.judul);
       return s.tombol_url
         ? '<a class="spanduk-bingkai" href="' + esc(s.tombol_url) + '">' + gambar + '</a>'
         : '<div class="spanduk-bingkai">' + gambar + '</div>';
-    }).join('') + '</section></div>';
+    }).join('');
+
+    return '<div class="wrap"><section class="spanduk-geser">' +
+      '<div class="geser">' +
+        '<button class="geser-panah kiri" type="button" aria-label="Spanduk sebelumnya" hidden>' +
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6 8.5 12l6 6" fill="none" ' +
+          'stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '</button>' +
+        '<div class="geser-rel spanduk-rel" tabindex="0" role="group" ' +
+          'aria-label="Spanduk promosi, geser mendatar">' + isi + '</div>' +
+        '<button class="geser-panah kanan" type="button" aria-label="Spanduk berikutnya" hidden>' +
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6" fill="none" ' +
+          'stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '</button>' +
+      '</div>' +
+    '</section></div>';
   }
 
   // Produk yang ditandai `sorot` di /admin. Selama belum ada satu pun yang
@@ -622,8 +695,9 @@
     return heroBeranda(data) +
       spandukBeranda(data) +
       (data.produk.length ? sorotBeranda(data) : '') +
+      eksklusifBeranda(data) +
+      spandukGeser(data) +
       ceritaBeranda(data) +
-      alasanBeranda(data) +
       testimoniBeranda(data) +
       lokasiBeranda(data);
   }
@@ -796,7 +870,8 @@
     kategoriProduk: kategoriProduk,
     seksiDari: seksiDari, seksiSatu: seksiSatu, seksiTerisi: seksiTerisi,
     beranda: beranda, shop: shop, tentang: tentang, produk: produk,
-    spandukBeranda: spandukBeranda,
+    spandukBeranda: spandukBeranda, spandukGeser: spandukGeser,
+    eksklusifBeranda: eksklusifBeranda,
     MARKETPLACE: MARKETPLACE
   };
 

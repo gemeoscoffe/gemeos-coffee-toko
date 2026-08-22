@@ -199,30 +199,33 @@
     const awal = new URL(window.location.href).searchParams.get('q');
     if (awal) { kotakCari.value = awal; saring(); }
   }
-  // Panah barisan produk di halaman depan.
+  // Panah untuk setiap barisan yang bisa digeser: barisan produk di halaman
+  // depan, dan spanduk bergulir di bawahnya. Dicari lewat kelas, bukan lewat
+  // id, supaya bagian ketiga nanti tidak perlu menambah kode di sini lagi.
   //
   // Barisannya sudah bisa digulir tanpa berkas ini -- dengan jari, roda, atau
-  // papan ketik. Yang ditambahkan di sini cuma dua tombol, dan tombolnya baru
-  // muncul kalau barisannya memang lebih lebar dari layar. Panah yang tidak
-  // menggeser apa pun membuat orang mengira halamannya rusak.
-  const rel = document.getElementById('sorot-rel');
-  if (rel) {
-    const kiri = rel.parentElement.querySelector('.geser-panah.kiri');
-    const kanan = rel.parentElement.querySelector('.geser-panah.kanan');
-
-    // Satu langkah = satu kartu, diukur dari kartu yang benar-benar ada supaya
-    // tidak perlu menebak lebarnya di tiap ukuran layar.
-    function langkah() {
-      const k = rel.querySelector('.kartu');
-      if (!k) return rel.clientWidth;
-      const jarak = parseFloat(getComputedStyle(rel).columnGap) || 0;
-      return k.getBoundingClientRect().width + jarak;
-    }
+  // papan ketik. Yang ditambahkan cuma dua tombol, dan tombolnya baru muncul
+  // kalau barisannya memang lebih lebar dari layar. Panah yang tidak menggeser
+  // apa pun membuat orang mengira halamannya rusak.
+  document.querySelectorAll('.geser').forEach(function (kotak) {
+    const rel = kotak.querySelector('.geser-rel');
+    const kiri = kotak.querySelector('.geser-panah.kiri');
+    const kanan = kotak.querySelector('.geser-panah.kanan');
+    if (!rel || !kiri || !kanan) return;
 
     // Sisa geser yang lebih kecil dari ini dianggap tidak ada. Barisan yang
     // hampir muat masih bisa digeser beberapa piksel, dan panah yang cuma
     // menggeser sejumput itu terasa rusak, bukan terasa berfungsi.
     const AMBANG_GESER = 48;
+
+    // Satu langkah = satu isi barisan, diukur dari yang benar-benar ada supaya
+    // tidak perlu menebak lebarnya di tiap ukuran layar.
+    function langkah() {
+      const anak = rel.firstElementChild;
+      if (!anak) return rel.clientWidth;
+      const jarak = parseFloat(getComputedStyle(rel).columnGap) || 0;
+      return anak.getBoundingClientRect().width + jarak;
+    }
 
     function perbarui() {
       const bisaGeser = rel.scrollWidth - rel.clientWidth > AMBANG_GESER;
@@ -239,12 +242,13 @@
     rel.addEventListener('scroll', perbarui, { passive: true });
     window.addEventListener('resize', perbarui, { passive: true });
 
-    // Foto kartu dimuat malas, jadi scrollWidth masih bisa bertambah setelah
-    // halaman selesai dibaca; tanpa pemeriksaan ulang ini panahnya kadang
-    // tidak pernah muncul di sambungan yang lambat.
+    // Gambar di dalamnya dimuat malas, jadi scrollWidth masih bisa bertambah
+    // setelah halaman selesai dibaca; tanpa pemeriksaan ulang ini panahnya
+    // kadang tidak pernah muncul di sambungan yang lambat.
     window.addEventListener('load', perbarui);
     perbarui();
-  }
+  });
+
   // ---------------------------------------------------------------------------
   // Keranjang
   // ---------------------------------------------------------------------------

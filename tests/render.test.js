@@ -595,3 +595,75 @@ test('spanduk muncul di antara hero dan produk, bukan di bawah katalog', functio
   }));
   assert.ok(html.indexOf('class="spanduk"') < html.indexOf('id="sorot-rel"'));
 });
+
+test('spanduk melebar sampai tepi hanya kalau diminta', function () {
+  const contained = RENDER.beranda(data({
+    seksi: [seksi({ id: 9, blok: 'spanduk', judul: 'Promo', foto_path: 'a.webp', foto_lebar: [800] })]
+  }));
+  assert.doesNotMatch(contained, /class="spanduk penuh"/);
+  assert.match(contained, /class="wrap"><section class="spanduk"/);
+
+  const penuh = RENDER.beranda(data({
+    seksi: [seksi({ id: 9, blok: 'spanduk', judul: 'Promo', subjudul: 'penuh',
+                    foto_path: 'a.webp', foto_lebar: [800] })]
+  }));
+  assert.match(penuh, /<section class="spanduk penuh">/);
+});
+
+// -- Bagian Eksklusif dan spanduk bergulir -----------------------------------
+
+test('judul Eksklusif tanpa daftar alasan tidak digambar', function () {
+  const html = RENDER.beranda(data({
+    seksi: [seksi({ id: 9, blok: 'eksklusif', judul: 'Eksklusif di toko kami' })]
+  }));
+  assert.doesNotMatch(html, /class="eksklusif"/);
+});
+
+// Judul kosong tidak boleh menghilangkan alasan yang sudah terisi -- itu isi
+// yang sudah tayang sebelum bagian ini ada.
+test('tanpa judul Eksklusif, daftar alasan tetap tampil dengan bentuk lamanya', function () {
+  const html = RENDER.beranda(data({
+    seksi: [seksi({ id: 2, blok: 'alasan', urutan: 1, judul: 'Murni 100%', teks: 'Tanpa campuran.' })]
+  }));
+  assert.doesNotMatch(html, /class="eksklusif"/);
+  assert.match(html, /class="pita"/);
+  assert.match(html, /Murni 100%/);
+});
+
+test('judul dan alasan bersama digambar sebagai dua kolom', function () {
+  const html = RENDER.beranda(data({
+    seksi: [
+      seksi({ id: 9, blok: 'eksklusif', subjudul: 'Hanya di sini', judul: 'Eksklusif di toko kami' }),
+      seksi({ id: 2, blok: 'alasan', urutan: 1, judul: 'Murni 100%', teks: 'Tanpa campuran.' })
+    ]
+  }));
+  assert.match(html, /class="eksklusif"/);
+  assert.match(html, /Eksklusif di toko kami/);
+  assert.match(html, /Murni 100%/);
+  assert.doesNotMatch(html, /class="pita"/);
+});
+
+test('spanduk bergulir hanya digambar kalau ada yang berfoto', function () {
+  const kosong = RENDER.beranda(data({
+    seksi: [seksi({ id: 9, blok: 'spanduk-geser', judul: 'Promo' })]
+  }));
+  assert.doesNotMatch(kosong, /class="spanduk-geser"/);
+
+  const isi = RENDER.beranda(data({
+    seksi: [seksi({ id: 9, blok: 'spanduk-geser', judul: 'Promo', foto_path: 'a.webp', foto_lebar: [800] })]
+  }));
+  assert.match(isi, /class="spanduk-geser"/);
+  assert.match(isi, /class="geser-rel spanduk-rel"/);
+  assert.match(isi, /aria-label="Spanduk berikutnya" hidden/);
+});
+
+test('spanduk bergulir muncul di bawah bagian Eksklusif', function () {
+  const html = RENDER.beranda(data({
+    seksi: [
+      seksi({ id: 9, blok: 'eksklusif', judul: 'Eksklusif di toko kami' }),
+      seksi({ id: 2, blok: 'alasan', urutan: 1, judul: 'Murni 100%', teks: 'x' }),
+      seksi({ id: 10, blok: 'spanduk-geser', judul: 'Promo', foto_path: 'a.webp', foto_lebar: [800] })
+    ]
+  }));
+  assert.ok(html.indexOf('class="eksklusif"') < html.indexOf('class="spanduk-geser"'));
+});
